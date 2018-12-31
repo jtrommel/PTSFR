@@ -103,12 +103,14 @@ Time series can have the following characteristics:
   \item seasonality: periodic behaviour with characteristic period $T_{i}$. Multiple periodicity is possible
 \end{enumerate}
 
+The book\sidenote{Practical Time Series Forecasting with R - Galit Shmueli and Kenneth C. Lichtendahl Jr.} uses a number of real life data sets. I add a number of data sets that exhibit one or more of the classic time series characteristics. 
+
 A time series can be constructed by \emph{adding} or \emph{multiplying} or \emph{combinations of adding and multiplying} these basic characteristics. \emph{Multiplication} is used when e.g. the amplitude of an seasonal characteristic is linked to the trend. Multiplying a trend with a sine function (seasonality) will increase the amplitude of the sine function when the trend is rising, and decrease the amplitude when the trend is falling. The same can be said for multiplying the trend and the error term: bigger errors when the trend rises, smaller when it falls.
 
 This gives a lot of possible combinations. If we limit ourselves to a maximum of two seasonal elements, and either a completely additive or a completely multiplicative type we get $2^6 = 64$ combinations:
 
 \begin{tabular}{r | c | c}
-characteristic & & \\
+characteristic & 0 = not present & 1 = present \\
 \hline
 error & 0 & 1 \\
 level & 0 & 1 \\
@@ -118,7 +120,46 @@ seasonality 2 & 0 & 1 \\
 type & A & M
 \end{tabular}
 
-The book\sidenote{Practical Time Series Forecasting with R - Galit Shmueli and Kenneth C. Lichtendahl Jr.} uses a number of real life data sets. I add a number of data sets that exhibit one or more of the classic time series characteristics.
+However, some of these 64 possibilities are not interesting or self evident:
+\begin{itemize}
+  \item all multiplicative constructed time series where one of the characteristics is 0, have the same end result i.e. zero everywhere
+  \item some models without an error term. Where we have only level (no trend, no seasonality) the graph is a horizontal line. Forecasting is easy: just continue the line. Where we have level + trend the graph is a straight line and again forecasting is simply extending the line
+\end{itemize}
+
+The interesting ones are:
+\begin{enumerate}
+  \item additively created time series:
+    \begin{itemize}
+      \item without error
+        \begin{itemize}
+          \item level + trend + seasonality 1
+          \item level + trend + seasonality 1 + seasonality 2
+        \end{itemize}
+      \item with error
+        \begin{itemize}
+          \item error + level
+          \item error + level + trend
+          \item error + level + trend + seasonality 1
+          \item error + level + trend + seasonality 1 + seasonality 2
+        \end{itemize}
+      \end{itemize}
+  \item multiplicatively created time series:
+    \begin{itemize}
+      \item without error
+        \begin{itemize}
+          \item level*trend
+          \item level*trend*seasonality 1
+          \item level*trend*seasonality 1*seasonality 2
+        \end{itemize}
+      \item with error
+        \begin{itemize}
+          \item error*level
+          \item error*level*trend
+          \item error*level*trend*seasonality 1
+          \item error*level*trend*seasonality 1*seasonality 2
+        \end{itemize}
+    \end{itemize}
+\end{enumerate}
 
 \section{Constructed data sets}
 
