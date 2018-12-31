@@ -168,9 +168,9 @@ The interesting ones are:
   \item time step unit: 1
   \item error: random from normal distributiion with $\mu=0$, $\sigma=5$. Random number generator seed: 2019
   \item level: 0 or $\frac{\sigma}{2}$
-  \item trend: linear with slope=0 or $\frac{2\sigma}{N}$
-  \item seasonality 1: sine with amplitude=0 or $\frac{\sigma}{2}$, period=$\frac{N}{10}$, phase=0
-  \item seasonality 2: sine with amplitude=0 or $\frac{\sigma}{5}$, period=$\frac{N}{40}$, phase=$\frac{\pi}{3}$
+  \item trend: linear with slope=0 or slope=$\frac{5\sigma}{N}$
+  \item seasonality 1: sine with amplitude=0 or $2\sigma$, period=$\frac{N}{10}$, phase=0
+  \item seasonality 2: sine with amplitude=0 or $\sigma$, period=$\frac{N}{40}$, phase=$\frac{\pi}{3}$
   \item type: additive (''A") or multiplicative (''M")
 \end{itemize}
 
@@ -180,7 +180,59 @@ The interesting ones are:
 N <- 1000
 # Random number generator seed
 set.seed(2019)
+# error parameters
+mu <- 0
+sigma <- 5
+# level (when not zero)
+level <- 10*sigma/2
+# seasonality 1
+amp1 <- 2*sigma
+teta1 <- 0
+T1 <- N/10
+# seasonality 2
+amp2 <- sigma
+teta2 <- pi/3
+T2 <- N/40
+#
+# creating the building blocks
+construct <- data.frame(t = seq(1:N),
+                        error = rnorm(N, mean = mu, sd = sigma),
+                        level = rep(level, N))
+construct %>% mutate(trend = (2*level/N)*(t - N/2)) -> construct
+construct %>% mutate(season1 = amp1*sin(2*pi*t/T1 + teta1)) -> construct
+construct %>% mutate(season2 = amp2*sin(2*pi*t/T2 + teta2)) -> construct
 @
+
+<<label=constructs, fig=TRUE, include=FALSE, echo=FALSE>>=
+p1 <- ggplot(data = construct, aes(x = t)) +
+  geom_line(aes(y = error), size = 1, color="red") +
+  geom_hline(yintercept = mu, linetype = 2) +
+  scale_y_continuous(limits= c(-25, 75)) +
+  JT.theme
+p2 <- ggplot(data = construct, aes(x = t)) +
+  geom_line(aes(y = error + level), size = 1, color="red") +
+  geom_hline(yintercept = level, linetype = 2) +
+  scale_y_continuous(limits= c(-25, 75)) +
+  JT.theme
+p3 <- ggplot(data = construct, aes(x = t)) +
+  geom_line(aes(y = error + level + trend), size = 1, color="red") +
+  geom_hline(yintercept = level, linetype = 2) +
+  scale_y_continuous(limits= c(-25, 75)) +
+  JT.theme
+p4 <- ggplot(data = construct, aes(x = t)) +
+  geom_line(aes(y = error + level + trend + season1 + season2), size = 1, color="red") +
+  geom_hline(yintercept = level, linetype = 2) +
+  scale_y_continuous(limits= c(-25, 75)) +
+  JT.theme
+grid.arrange(p1, p2, p3, p4, nrow=2)
+@
+
+\begin{figure}
+\includegraphics[width=1\textwidth]{PTSFR-constructs}
+\caption{Additive constructed time series}
+\label{fig:constructs}
+\setfloatalignment{b}
+\end{figure}
 
 
 \chapter{Approaching Forecasting}
