@@ -90,6 +90,58 @@ JT.theme <- theme(panel.border = element_rect(fill = NA, colour = "gray10"),
 \chapter*{Practical Time Series Forecasting with R}
 
 \mainmatter
+
+\chapter{Constructing different data sets}
+
+\section{Characteristics of time series}
+Time series can have the following characteristics:
+
+\begin{enumerate}
+  \item error: random fluctuation of values
+  \item level: mean value of the series
+  \item trend: gradual evolution without repetition
+  \item seasonality: periodic behaviour with characteristic period $T_{i}$. Multiple periodicity is possible
+\end{enumerate}
+
+A time series can be constructed by \emph{adding} or \emph{multiplying} or \emph{combinations of adding and multiplying} these basic characteristics. \emph{Multiplication} is used when e.g. the amplitude of an seasonal characteristic is linked to the trend. Multiplying a trend with a sine function (seasonality) will increase the amplitude of the sine function when the trend is rising, and decrease the amplitude when the trend is falling. The same can be said for multiplying the trend and the error term: bigger errors when the trend rises, smaller when it falls.
+
+This gives a lot of possible combinations. If we limit ourselves to a maximum of two seasonal elements, and either a completely additive or a completely multiplicative type we get $2^6 = 64$ combinations:
+
+\begin{tabular}{r | c | c}
+characteristic & & \\
+\hline
+error & 0 & 1 \\
+level & 0 & 1 \\
+trend & 0 & 1 \\
+seasonality 1 & 0 & 1 \\
+seasonality 2 & 0 & 1 \\
+type & A & M
+\end{tabular}
+
+The book\sidenote{Practical Time Series Forecasting with R - Galit Shmueli and Kenneth C. Lichtendahl Jr.} uses a number of real life data sets. I add a number of data sets that exhibit one or more of the classic time series characteristics.
+
+\section{Constructed data sets}
+
+\begin{itemize}
+  \item number of elements per time series: N=1000
+  \item time step unit: 1
+  \item error: random from normal distributiion with $\mu=0$, $\sigma=5$. Random number generator seed: 2019
+  \item level: 0 or $\frac{\sigma}{2}$
+  \item trend: linear with slope=0 or $\frac{2\sigma}{N}$
+  \item seasonality 1: sine with amplitude=0 or $\frac{\sigma}{2}$, period=$\frac{N}{10}$, phase=0
+  \item seasonality 2: sine with amplitude=0 or $\frac{\sigma}{5}$, period=$\frac{N}{40}$, phase=$\frac{\pi}{3}$
+  \item type: additive (''A") or multiplicative (''M")
+\end{itemize}
+
+
+<<echo=FALSE>>=
+# Number of elements in the data set
+N <- 1000
+# Random number generator seed
+set.seed(2019)
+@
+
+
 \chapter{Approaching Forecasting}
 \section{Forecasting: Where?}
 
@@ -105,7 +157,7 @@ ggplot(data=Amtrak.data) +
 @
 
 \begin{figure}
-\includegraphics[width=1\textwidth]{TS-Amdata}
+\includegraphics[width=1\textwidth]{PTSFR-Amdata}
 \caption{}
 \label{fig:Amdata}
 \setfloatalignment{b}
