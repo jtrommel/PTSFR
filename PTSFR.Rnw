@@ -51,7 +51,7 @@
 \usepackage{makeidx}
 \makeindex
 
-\title{17 On 3 January 2019, how many U.S. senators will be women?}
+\title{Practical Time Series Forecasting with R}
 \author{Jan Trommelmans}
 
 \begin{document}
@@ -102,6 +102,16 @@ Time series can have the following characteristics:
   \item trend: gradual evolution without repetition
   \item seasonality: periodic behaviour with characteristic period $T_{i}$. Multiple periodicity is possible
 \end{enumerate}
+
+The use of \emph{level} and \emph{trend} as separate characteristics is different from normal usage in model building where both are incorporated into the model equation. Thus if we model the general behaviour of $y$ as a function of $x$ by a polynomial:
+\begin{equation}
+y(x)=b_{0} + b_{1}x + b_{2}x^{2} + \ldots b_{i}x^{i} + \ldots = p(x)
+\end{equation}
+
+and we define the level as $\bar{y}$ then the \emph{trend} in the sense of time series is given by:
+\begin{equation}
+trend = p(x) - \bar{y} = \left( b_{0} - \bar{y} \right) + b_{1}x + b_{2}x^{2} + \ldots b_{i}x^{i} + \ldots 
+\end{equation}
 
 The book\sidenote{Practical Time Series Forecasting with R - Galit Shmueli and Kenneth C. Lichtendahl Jr.} uses a number of real life data sets. I add a number of data sets that exhibit one or more of the classic time series characteristics. 
 
@@ -166,11 +176,16 @@ The interesting ones are:
 \begin{itemize}
   \item number of elements per time series: N=1000
   \item time step unit: 1
-  \item error: random from normal distributiion with $\mu=0$, $\sigma=5$. Random number generator seed: 2019
-  \item level: 0 or $\frac{\sigma}{2}$
-  \item trend: linear with slope=0 or slope=$\frac{5\sigma}{N}$
-  \item seasonality 1: sine with amplitude=0 or $2\sigma$, period=$\frac{N}{10}$, phase=0
-  \item seasonality 2: sine with amplitude=0 or $\sigma$, period=$\frac{N}{40}$, phase=$\frac{\pi}{3}$
+  \item error: random from normal distributiion with $\mu=0$, $\sigma=3$. Random number generator seed: 2019
+  \item trend: polynomial. We restrict ourselves to models $y=p(x)$ with second degree polynomials (or first degree when $b_{2}=0$) with co\"{e}ffici\"{e}nts $b_{0}=0$, $b_{1}=0.01$ and $b_{2}=0.00005$. From this model it follows that
+    \begin{equation}
+      level = \bar{y} = \frac{1}{N}\int_{t=1}^{t=N}p(t)dt = \frac{1}{N} \left[ b_{0}(N-1) + \frac{b_{1}}{2}(N^{2}-1) + \frac{b_{2}}{3}(N^{3} - 1)  \right]
+    \end{equation}
+    \begin{equation}
+      trend = p(t) - level
+    \end{equation}
+  \item seasonality 1: sine with amplitude=0 or $3\sigma$, period=$\frac{N}{9}$, phase=0. N not exact multiple of T1
+  \item seasonality 2: sine with amplitude=0 or $\sigma$, period=$\frac{N}{39}$, phase=$\frac{\pi}{3}$. N not exaxt multiple of T2
   \item type: additive (''A") or multiplicative (''M")
 \end{itemize}
 
@@ -182,44 +197,54 @@ N <- 1000
 set.seed(2019)
 # error parameters
 mu <- 0
-sigma <- 5
+sigma <- 3
+# model parameters
+b0 <- 0
+b1 <- 0.01
+b2 <- 0.00005
 # level (when not zero)
-level <- 10*sigma/2
+level <- (1/N)*(b0*(N-1) + (b1/2)*(N^2 -1) + (b2/3)*(N^3 -1))
+# trend
 # seasonality 1
-amp1 <- 2*sigma
+amp1 <- 3*sigma
 teta1 <- 0
-T1 <- N/10
+T1 <- N/9
 # seasonality 2
 amp2 <- sigma
 teta2 <- pi/3
-T2 <- N/40
-#
-# creating the building blocks
-construct <- data.frame(t = seq(1:N),
-                        error = rnorm(N, mean = mu, sd = sigma),
-                        level = rep(level, N))
-construct %>% mutate(trend = (2*level/N)*(t - N/2)) -> construct
-construct %>% mutate(season1 = amp1*sin(2*pi*t/T1 + teta1)) -> construct
-construct %>% mutate(season2 = amp2*sin(2*pi*t/T2 + teta2)) -> construct
+T2 <- N/39
 @
 
-<<label=constructs, fig=TRUE, include=FALSE, echo=FALSE>>=
-p1 <- ggplot(data = construct, aes(x = t)) +
+\subsection{Additive constructed time series}
+<<echo=FALSE>>=
+#
+# creating the additive constructed set
+#
+additive <- data.frame(t = seq(1:N),
+                        error = rnorm(N, mean = mu, sd = sigma),
+                        level = rep(level, N))
+additive %>% mutate(trend = (b0 + b1*t +b2*t^2) - level) -> additive
+additive %>% mutate(season1 = amp1*sin(2*pi*t/T1 + teta1)) -> additive
+additive %>% mutate(season2 = amp2*sin(2*pi*t/T2 + teta2)) -> additive
+@
+
+<<label=additive, fig=TRUE, include=FALSE, echo=FALSE>>=
+p1 <- ggplot(data = additive, aes(x = t)) +
   geom_line(aes(y = error), size = 1, color="red") +
   geom_hline(yintercept = mu, linetype = 2) +
   scale_y_continuous(limits= c(-25, 75)) +
   JT.theme
-p2 <- ggplot(data = construct, aes(x = t)) +
+p2 <- ggplot(data = additive, aes(x = t)) +
   geom_line(aes(y = error + level), size = 1, color="red") +
   geom_hline(yintercept = level, linetype = 2) +
   scale_y_continuous(limits= c(-25, 75)) +
   JT.theme
-p3 <- ggplot(data = construct, aes(x = t)) +
+p3 <- ggplot(data = additive, aes(x = t)) +
   geom_line(aes(y = error + level + trend), size = 1, color="red") +
   geom_hline(yintercept = level, linetype = 2) +
   scale_y_continuous(limits= c(-25, 75)) +
   JT.theme
-p4 <- ggplot(data = construct, aes(x = t)) +
+p4 <- ggplot(data = additive, aes(x = t)) +
   geom_line(aes(y = error + level + trend + season1 + season2), size = 1, color="red") +
   geom_hline(yintercept = level, linetype = 2) +
   scale_y_continuous(limits= c(-25, 75)) +
@@ -228,12 +253,55 @@ grid.arrange(p1, p2, p3, p4, nrow=2)
 @
 
 \begin{figure}
-\includegraphics[width=1\textwidth]{PTSFR-constructs}
+\includegraphics[width=0.85\textwidth]{PTSFR-additive}
 \caption{Additive constructed time series}
-\label{fig:constructs}
+\label{fig:additive}
 \setfloatalignment{b}
 \end{figure}
 
+\subsection{Multiplicative constructed time series}
+<<echo=FALSE>>=
+#
+# creating the multiplicative constructed set
+#
+multiplicative <- data.frame(t = seq(1:N),
+                        error = rnorm(N, mean = mu, sd = sigma),
+                        level = rep(level, N))
+multiplicative %>% mutate(trend = (b0 + b1*t +b2*t^2) - level) -> multiplicative
+multiplicative %>% mutate(season1 = amp1*sin(2*pi*t/T1 + teta1)) -> multiplicative
+multiplicative %>% mutate(season2 = amp2*sin(2*pi*t/T2 + teta2)) -> multiplicative
+@
+
+<<label=multiplicative, fig=TRUE, include=FALSE, echo=FALSE>>=
+p1 <- ggplot(data = multiplicative, aes(x = t)) +
+  geom_line(aes(y = error), size = 1, color="red") +
+  geom_hline(yintercept = mu, linetype = 2) +
+  scale_y_continuous(limits= c(-25, 175)) +
+  JT.theme
+p2 <- ggplot(data = multiplicative, aes(x = t)) +
+  geom_line(aes(y = error*level), size = 1, color="red") +
+  geom_hline(yintercept = level, linetype = 2) +
+  scale_y_continuous(limits= c(-25, 175)) +
+  JT.theme
+p3 <- ggplot(data = multiplicative, aes(x = t)) +
+  geom_line(aes(y = error*level*trend), size = 1, color="red") +
+  geom_hline(yintercept = level, linetype = 2) +
+  scale_y_continuous(limits= c(-25, 175)) +
+  JT.theme
+p4 <- ggplot(data = multiplicative, aes(x = t)) +
+  geom_line(aes(y = error*level*trend*season1*season2), size = 1, color="red") +
+  geom_hline(yintercept = level, linetype = 2) +
+  scale_y_continuous(limits= c(-25, 175)) +
+  JT.theme
+grid.arrange(p1, p2, p3, p4, nrow=2)
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-multiplicative}
+\caption{multiplicative constructed time series}
+\label{fig:multiplicative}
+\setfloatalignment{b}
+\end{figure}
 
 \chapter{Approaching Forecasting}
 \section{Forecasting: Where?}
