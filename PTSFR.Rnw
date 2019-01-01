@@ -330,45 +330,21 @@ grid.arrange(p1, p2, nrow=1)
     \end{marginfigure}
 \end{itemize}
 
-
-<<echo=FALSE>>=
-#
-# creating the multiplicative constructed set
-#
-multiplicative <- data.frame(t = seq(1:N),
-                        error = rnorm(N, mean = mu, sd = sigma),
-                        level = rep(level, N))
-multiplicative %>% mutate(trend = (b0 + b1*t +b2*t^2) - level) -> multiplicative
-multiplicative %>% mutate(season1 = amp1*sin(2*pi*t/T1 + teta1)) -> multiplicative
-multiplicative %>% mutate(season2 = amp2*sin(2*pi*t/T2 + teta2)) -> multiplicative
-@
+In the end to obtain the goal that both the amplitude of the seasonal terms and the amount of error are influenced by level and trend can be achieved by combining additive and multiplicative elements in
+\begin{equation}
+y(t) = (level + trend)*(1 + 0.05*(error + season1 + season2))
+\end{equation}
+resulting in Figure~\ref{fig:multiplicative}.
 
 <<label=multiplicative, fig=TRUE, include=FALSE, echo=FALSE>>=
-p1 <- ggplot(data = multiplicative, aes(x = t)) +
-  geom_line(aes(y = error), size = 1, color="red") +
-  geom_hline(yintercept = mu, linetype = 2) +
-  scale_y_continuous(limits= c(-25, 175)) +
+ggplot(data = construct, aes(x = t)) +
+  geom_line(aes(y = (level+trend)*(1 + 0.05*(error + season1 + season2))), size=1, color="red") +
+  labs(title="") +
   JT.theme
-p2 <- ggplot(data = multiplicative, aes(x = t)) +
-  geom_line(aes(y = error*level), size = 1, color="red") +
-  geom_hline(yintercept = level, linetype = 2) +
-  scale_y_continuous(limits= c(-25, 175)) +
-  JT.theme
-p3 <- ggplot(data = multiplicative, aes(x = t)) +
-  geom_line(aes(y = error*level*trend), size = 1, color="red") +
-  geom_hline(yintercept = level, linetype = 2) +
-  scale_y_continuous(limits= c(-25, 175)) +
-  JT.theme
-p4 <- ggplot(data = multiplicative, aes(x = t)) +
-  geom_line(aes(y = error*level*trend*season1*season2), size = 1, color="red") +
-  geom_hline(yintercept = level, linetype = 2) +
-  scale_y_continuous(limits= c(-25, 175)) +
-  JT.theme
-grid.arrange(p1, p2, p3, p4, nrow=2)
 @
 
 \begin{figure}
-\includegraphics[width=0.85\textwidth]{PTSFR-multiplicative}
+\includegraphics[width=0.5\textwidth]{PTSFR-multiplicative}
 \caption{multiplicative constructed time series}
 \label{fig:multiplicative}
 \setfloatalignment{b}
