@@ -94,6 +94,9 @@ JT.theme <- theme(panel.border = element_rect(fill = NA, colour = "gray10"),
 \chapter{Constructing different data sets}
 
 \section{Characteristics of time series}
+
+\emph{Time series}\index{time series} are a specific sort of data. In constrast with \emph{cross-secional data}\index{cross-sectional data}, which are multiple measurements taken at the same time, \emph{time series} consist of one measurement taken at different moments in time.
+
 Time series can have the following characteristics:
 
 \begin{enumerate}
@@ -350,10 +353,36 @@ ggplot(data = construct, aes(x = t)) +
 \setfloatalignment{b}
 \end{figure}
 
+Let's leave it there for the moment.
+
 \chapter{Approaching Forecasting}
 \section{Forecasting: Where?}
+Everywhere
 
-\subsection{The data}
+\section{Basic notation}
+\begin{itemize}
+ \item t=1, 2, 3 : index of time of measurement of the value
+ \item $y_{1}, y_{2}, \ldots y_{i}, \ldots$ : value of the time series for t=i
+ \item $F_{t}$ : forecasted value for time index t
+ \item $F_{t+k}$ : k-step ahead forecast when the forecasting time is t (don't know what that means)
+ \item $e_{t}$ : forecast error at time t =$y_{t}-F_{t}$
+\end{itemize}
+
+\section{Forecasting process}
+
+\begin{enumerate}
+	\item define goal (chapter 1)
+	\item get data (chapter 2)
+	\item explore and visualise the time series (chapter 2)
+	\item pre-process data (chapter 2)
+	\item partition the time series (chapter 4)
+	\item apply forecasting methods (chapter 5 - 9)
+	\item evaluate, compare performance (chapter 3)
+	\item implement forecasting system (chapter 10)
+\end{enumerate}
+
+
+\newthought{Example: Ridership on Amtrak Trains}
 
 <<label=Amdata,fig=TRUE,include=FALSE, echo=FALSE>>=
 Amtrak.data <- read.csv("Data/Amtrak data.csv", sep=";")
@@ -364,15 +393,28 @@ ggplot(data=Amtrak.data) +
   JT.theme
 @
 
-\begin{figure}
+\begin{marginfigure}
 \includegraphics[width=1\textwidth]{PTSFR-Amdata}
 \caption{}
 \label{fig:Amdata}
 \setfloatalignment{b}
-\end{figure}
+\end{marginfigure}
 
+\section{Goal definition}
+
+\begin{itemize}
+	\item purpose of generating forecasts? \emph{time series analysis}\index{time series!analysis} is about \emph{descriptive modeling}\index{modeling!descriptive} the time series. \emph{time series forecasting}\index{time series!forecasting} is about \emph{predicting}\index{predictive} future values. Descriptive methods can use data ''from the future" (e.g. in moving averaging), while predictive methods can only rely on present data and past data.
+	\item type of forecasts that are needed? \emph{Forecast horizon}\index{forecast horizon}: how far in the future should we forecast. \emph{Forecast updating}\index{forecast updating}: forecasting for one point in time, or ongoing
+	\item how will the forecasts be used?
+	\item costs associated with forecast errors?
+	\item data available in the future?
+\end{itemize}
+
+
+\printindex
 
 \newpage
+
 \textbf{Thanks} \\
 \medskip
 R Core Team (2018). R: A language and environment for statistical computing. R Foundation for Statistical Computing, Vienna, Austria. URL https://www.R-project.org/.
