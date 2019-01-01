@@ -220,31 +220,31 @@ T2 <- N/39
 #
 # creating the additive constructed set
 #
-additive <- data.frame(t = seq(1:N),
+construct <- data.frame(t = seq(1:N),
                         error = rnorm(N, mean = mu, sd = sigma),
                         level = rep(level, N))
-additive %>% mutate(trend = (b0 + b1*t +b2*t^2) - level) -> additive
-additive %>% mutate(season1 = amp1*sin(2*pi*t/T1 + teta1)) -> additive
-additive %>% mutate(season2 = amp2*sin(2*pi*t/T2 + teta2)) -> additive
+construct %>% mutate(trend = (b0 + b1*t +b2*t^2) - level) -> construct
+construct %>% mutate(season1 = amp1*sin(2*pi*t/T1 + teta1)) -> construct
+construct %>% mutate(season2 = amp2*sin(2*pi*t/T2 + teta2)) -> construct
 @
 
 <<label=additive, fig=TRUE, include=FALSE, echo=FALSE>>=
-p1 <- ggplot(data = additive, aes(x = t)) +
+p1 <- ggplot(data = construct, aes(x = t)) +
   geom_line(aes(y = error), size = 1, color="red") +
   geom_hline(yintercept = mu, linetype = 2) +
   scale_y_continuous(limits= c(-25, 75)) +
   JT.theme
-p2 <- ggplot(data = additive, aes(x = t)) +
+p2 <- ggplot(data = construct, aes(x = t)) +
   geom_line(aes(y = error + level), size = 1, color="red") +
   geom_hline(yintercept = level, linetype = 2) +
   scale_y_continuous(limits= c(-25, 75)) +
   JT.theme
-p3 <- ggplot(data = additive, aes(x = t)) +
+p3 <- ggplot(data = construct, aes(x = t)) +
   geom_line(aes(y = error + level + trend), size = 1, color="red") +
   geom_hline(yintercept = level, linetype = 2) +
   scale_y_continuous(limits= c(-25, 75)) +
   JT.theme
-p4 <- ggplot(data = additive, aes(x = t)) +
+p4 <- ggplot(data = construct, aes(x = t)) +
   geom_line(aes(y = error + level + trend + season1 + season2), size = 1, color="red") +
   geom_hline(yintercept = level, linetype = 2) +
   scale_y_continuous(limits= c(-25, 75)) +
@@ -260,6 +260,77 @@ grid.arrange(p1, p2, p3, p4, nrow=2)
 \end{figure}
 
 \subsection{Multiplicative constructed time series}
+
+I'm still stumped by the ease with which multiplicative time series are defined. I find
+\begin{equation}
+y(t)=error(t)*level(t)*trend(t)*seasonality(t)
+\end{equation}
+
+But this multiplication means that $y(t)$ will always be equal to zero whenever one of the factors is zero. 
+
+<<label=level, fig=TRUE, include=FALSE, echo=FALSE>>=
+p1 <- ggplot(data = construct, aes(x = t)) +
+  geom_line(aes(y = level*trend), size=1, color="red") +
+  labs(title="") +
+  JT.theme
+p2 <- ggplot(data = construct, aes(x = t)) +
+  geom_line(aes(y = level*season1), size=1, color="red") +
+  labs(title="") +
+  JT.theme
+grid.arrange(p1, p2, nrow=1)
+@
+
+<<label=trend, fig=TRUE, include=FALSE, echo=FALSE>>=
+p1 <- ggplot(data = construct, aes(x = t)) +
+  geom_line(aes(y = trend*season1), size=1, color="red") +
+  labs(title="") +
+  JT.theme
+p2 <- ggplot(data = construct, aes(x = t)) +
+  geom_line(aes(y = (level+trend)*season1), size=1, color="red") +
+  labs(title="") +
+  JT.theme
+grid.arrange(p1, p2, nrow=1)
+@
+
+<<label=season, fig=TRUE, include=FALSE, echo=FALSE>>=
+p1 <- ggplot(data = construct, aes(x = t)) +
+  geom_line(aes(y = (level+trend)*(1+season1)), size=1, color="red") +
+  labs(title="") +
+  JT.theme
+p2 <- ggplot(data = construct, aes(x = t)) +
+  geom_line(aes(y = (level+trend)*(1+0.05*season1)), size=1, color="red") +
+  labs(title="") +
+  JT.theme
+grid.arrange(p1, p2, nrow=1)
+@
+
+\begin{itemize}
+  \item level*trend or level*season simply multiplies all the trend co\"{e}ffici\"{e}nts by level or the season's amplitude. The general picture remains the same (Figure~\ref{fig:level}).
+    \begin{marginfigure}[-2cm]
+      \includegraphics[width=1\textwidth]{PTSFR-level}
+      \caption{}
+      \label{fig:level}
+      \setfloatalignment{b}
+    \end{marginfigure}
+  \item trend*season1: because of the introduction of level, the trend will be about zero around $t=\frac{N}{2}$. Before that the trend will be negative and getting more negative, after that point the trend will be positive and getting more positive. This means the amplitude of the seasonality will get bigger to the left and to the right, with a phase-shift around $t=\frac{N}{2}$ (Figure~\ref{fig:trend})
+  \item (level+trend)*season: this changes the amplitude of the seasonal component but it loses the overall level and trend (Figure~\ref{fig:trend})
+    \begin{marginfigure}[0cm]
+      \includegraphics[width=1\textwidth]{PTSFR-trend}
+      \caption{}
+      \label{fig:trend}
+      \setfloatalignment{b}
+    \end{marginfigure}
+  \item (level+trend)*(1+season) (Figure~\ref{fig:season})
+  \item (level+trend)*(1+0.05*season) (Figure~\ref{fig:season})
+  \begin{marginfigure}[0cm]
+      \includegraphics[width=1\textwidth]{PTSFR-season}
+      \caption{}
+      \label{fig:season}
+      \setfloatalignment{b}
+    \end{marginfigure}
+\end{itemize}
+
+
 <<echo=FALSE>>=
 #
 # creating the multiplicative constructed set
