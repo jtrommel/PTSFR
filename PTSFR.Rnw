@@ -450,7 +450,16 @@ Even if forecasts are wanted on at time base $T$ we can still aggregate the coll
 
 \section{Time Series Components}
 
-see section\ref{sec:constructed}
+Disecting the time series in a \emph{systematic part}\index{systematic part} and a \emph{non-systematic part}\index{non-systematic part}. The \emph{non-systematic part} is called \emph{noise}\index{noise}. The \emph{systematic part} characterises the series but is hidden and obscured by the noise. The systematic components are:
+\begin{itemize}
+	\item \emph{level}\index{level}: this is the \emph{average} of the time series
+	\item \emph{trend}\index{trend}: this is \emph{the change in the series from one period to the other}. \textbf{This is a strange way of formulating trend!} The change from one period to the other looks like a first derivative. So if $y(t)$ is ''underlying" defined by the polynomial $p(t)$ then
+	\begin{eqnarray}
+    level & = & \overline{p(t)} = \frac{1}{t_{max}}\int_{0}^{t_max} p(t)dt \\
+    trend & = & \frac{d}{dt}p(t)
+  \end{eqnarray}
+\end{itemize}
+
 
 
 \printindex
