@@ -175,7 +175,7 @@ The interesting ones are:
 \end{enumerate}
 
 \section{Constructed data sets}
-
+\label{sec:constructed}
 \begin{itemize}
   \item number of elements per time series: N=1000
   \item time step unit: 1
@@ -256,12 +256,13 @@ grid.arrange(p1, p2, p3, p4, nrow=2)
 @
 
 \begin{figure}
-\includegraphics[width=0.85\textwidth]{PTSFR-additive}
+\includegraphics[width=0.7\textwidth]{PTSFR-additive}
 \caption{Additive constructed time series}
 \label{fig:additive}
 \setfloatalignment{b}
 \end{figure}
 
+\newpage
 \subsection{Multiplicative constructed time series}
 
 I'm still stumped by the ease with which multiplicative time series are defined. I find
@@ -403,12 +404,53 @@ ggplot(data=Amtrak.data) +
 \section{Goal definition}
 
 \begin{itemize}
-	\item purpose of generating forecasts? \emph{time series analysis}\index{time series!analysis} is about \emph{descriptive modeling}\index{modeling!descriptive} the time series. \emph{time series forecasting}\index{time series!forecasting} is about \emph{predicting}\index{predictive} future values. Descriptive methods can use data ''from the future" (e.g. in moving averaging), while predictive methods can only rely on present data and past data.
-	\item type of forecasts that are needed? \emph{Forecast horizon}\index{forecast horizon}: how far in the future should we forecast. \emph{Forecast updating}\index{forecast updating}: forecasting for one point in time, or ongoing
-	\item how will the forecasts be used?
+	\item purpose of generating forecasts? \emph{time series analysis}\index{time series!analysis} is about \emph{descriptive modeling}\index{modeling!descriptive} the time series. \emph{time series forecasting}\index{time series!forecasting} is about \emph{predicting}\index{modeling!predictive} future values. Descriptive methods can use data ''from the future" (e.g. in moving averaging), while predictive methods can only rely on present data and past data.
+	\item type of forecasts that are needed? \emph{Forecast horizon}\index{forecast horizon}: how far in the future should we forecast? A forecast horizon $k$ is the number of time steps ahead we have to forecast $(F_{t+k})$. The value of $k$ depends on the purpose of the forecast. Here the element of data availability is important: if the most recent data are two months old, a forecast for next month requires a forecast horizon $k=3$.
+	\item how will the forecasts be used? Do we want a numerical result or a binary one (''yes/no"). Who is the client: technocrats with a deep understanding of forecasting, or generalists who simply want to use the forecast?
 	\item costs associated with forecast errors?
-	\item data available in the future?
+	\item data available in the future? \emph{Forecast updating}\index{forecast updating}: forecasting for one point in time, or ongoing. If it is ongoing our forecasting method should be able to take new information into account. A forecast for december 2019 made in januari 2019 can be refreshed when data for februari, march ... 2019 become available.
+	\item the level of automation. The level of automation increases when many time series have to be forecast, when it is an ongoing process, when extra data become available during the forecasting period and when less forecasting expertise is available.
 \end{itemize}
+
+\chapter{Time Series Data}
+
+\section{Data Collection}
+
+\subsection{Data quality}
+
+\emph{Data quality}\index{data!quality} refers to:
+\begin{itemize}
+	\item accuracy of measurement
+	\item missing values
+	\item corrupted data
+	\item data entry errors
+\end{itemize}
+
+Check if external data\index{data!external} can be more predictive then solely the historic sequence available in a time series.
+
+\subsection{Temporal frequency}
+
+The \emph{frequency}\index{frequency!of data collection} of data collection is not necessarily the right frequency for forecasting purposes. It depends on the forecasting goal. If we want monthly forecasts it is sensible to reduce daily measurements to monthly values. Fine grained data collection introduces \emph{noise}\index{noise} that is not relevant for longer term forecasts and should be filtered out.
+
+Even if forecasts are wanted on at time base $T$ we can still aggregate the collected data on a time base $n*T$, make the forecast model and de-aggregate the forecast to time base $T$ (by a suitable interpolation method).
+
+\subsection{Granularity of the time series}
+\emph{Granularity}\index{granularity} refers to additional information present in the time series data that can be used to make subsets. These can be based on geographical information, sociological strata, age groups etc. A higher levels of detail can lead to subsets where the time series value equals zero. This could lead to changing the forecast method from numerical to binary (''yes/no").
+
+\subsection{Domain expertise}
+
+\index{domain expertise}Do we have the knowledge available to decide on the following topics:
+\begin{itemize}
+	\item which data are we going to collect?
+	\item at what frequency?
+	\item can we interpret the patterns in the data?
+	\item can we identify extreme values?
+	\item do the users of our forecast(s) have the knowledge to interpret the results?
+\end{itemize}
+
+\section{Time Series Components}
+
+see section\ref{sec:constructed}
 
 
 \printindex
