@@ -91,270 +91,7 @@ JT.theme <- theme(panel.border = element_rect(fill = NA, colour = "gray10"),
 
 \mainmatter
 
-\chapter{Constructing different data sets}
 
-\section{Characteristics of time series}
-
-\emph{Time series}\index{time series} are a specific sort of data. In constrast with \emph{cross-secional data}\index{cross-sectional data}, which are multiple measurements taken at the same time, \emph{time series} consist of one measurement taken at different moments in time.
-
-Time series can have the following characteristics:
-
-\begin{enumerate}
-  \item error: random fluctuation of values
-  \item level: mean value of the series
-  \item trend: gradual evolution without repetition
-  \item seasonality: periodic behaviour with characteristic period $T_{i}$. Multiple periodicity is possible
-\end{enumerate}
-
-The use of \emph{level} and \emph{trend} as separate characteristics is different from normal usage in model building where both are incorporated into the model equation. Thus if we model the general behaviour of $y$ as a function of $x$ by a polynomial:
-\begin{equation}
-y(x)=b_{0} + b_{1}x + b_{2}x^{2} + \ldots b_{i}x^{i} + \ldots = p(x)
-\end{equation}
-
-and we define the level as $\bar{y}$ then the \emph{trend} in the sense of time series is given by:
-\begin{equation}
-trend = p(x) - \bar{y} = \left( b_{0} - \bar{y} \right) + b_{1}x + b_{2}x^{2} + \ldots b_{i}x^{i} + \ldots 
-\end{equation}
-
-The book\sidenote{Practical Time Series Forecasting with R - Galit Shmueli and Kenneth C. Lichtendahl Jr.} uses a number of real life data sets. I add a number of data sets that exhibit one or more of the classic time series characteristics. 
-
-A time series can be constructed by \emph{adding} or \emph{multiplying} or \emph{combinations of adding and multiplying} these basic characteristics. \emph{Multiplication} is used when e.g. the amplitude of an seasonal characteristic is linked to the trend. Multiplying a trend with a sine function (seasonality) will increase the amplitude of the sine function when the trend is rising, and decrease the amplitude when the trend is falling. The same can be said for multiplying the trend and the error term: bigger errors when the trend rises, smaller when it falls.
-
-This gives a lot of possible combinations. If we limit ourselves to a maximum of two seasonal elements, and either a completely additive or a completely multiplicative type we get $2^6 = 64$ combinations:
-
-\begin{tabular}{r | c | c}
-characteristic & 0 = not present & 1 = present \\
-\hline
-error & 0 & 1 \\
-level & 0 & 1 \\
-trend & 0 & 1 \\
-seasonality 1 & 0 & 1 \\
-seasonality 2 & 0 & 1 \\
-type & A & M
-\end{tabular}
-
-However, some of these 64 possibilities are not interesting or self evident:
-\begin{itemize}
-  \item all multiplicative constructed time series where one of the characteristics is 0, have the same end result i.e. zero everywhere
-  \item some models without an error term. Where we have only level (no trend, no seasonality) the graph is a horizontal line. Forecasting is easy: just continue the line. Where we have level + trend the graph is a straight line and again forecasting is simply extending the line
-\end{itemize}
-
-The interesting ones are:
-\begin{enumerate}
-  \item additively created time series:
-    \begin{itemize}
-      \item without error
-        \begin{itemize}
-          \item level + trend + seasonality 1
-          \item level + trend + seasonality 1 + seasonality 2
-        \end{itemize}
-      \item with error
-        \begin{itemize}
-          \item error + level
-          \item error + level + trend
-          \item error + level + trend + seasonality 1
-          \item error + level + trend + seasonality 1 + seasonality 2
-        \end{itemize}
-      \end{itemize}
-  \item multiplicatively created time series:
-    \begin{itemize}
-      \item without error
-        \begin{itemize}
-          \item level*trend
-          \item level*trend*seasonality 1
-          \item level*trend*seasonality 1*seasonality 2
-        \end{itemize}
-      \item with error
-        \begin{itemize}
-          \item error*level
-          \item error*level*trend
-          \item error*level*trend*seasonality 1
-          \item error*level*trend*seasonality 1*seasonality 2
-        \end{itemize}
-    \end{itemize}
-\end{enumerate}
-
-\section{Constructed data sets}
-\label{sec:constructed}
-\begin{itemize}
-  \item number of elements per time series: N=1000
-  \item time step unit: 1
-  \item error: random from normal distributiion with $\mu=0$, $\sigma=3$. Random number generator seed: 2019
-  \item trend: polynomial. We restrict ourselves to models $y=p(x)$ with second degree polynomials (or first degree when $b_{2}=0$) with co\"{e}ffici\"{e}nts $b_{0}=0$, $b_{1}=0.01$ and $b_{2}=0.00005$. From this model it follows that
-    \begin{equation}
-      level = \bar{y} = \frac{1}{N}\int_{t=1}^{t=N}p(t)dt = \frac{1}{N} \left[ b_{0}(N-1) + \frac{b_{1}}{2}(N^{2}-1) + \frac{b_{2}}{3}(N^{3} - 1)  \right]
-    \end{equation}
-    \begin{equation}
-      trend = p(t) - level
-    \end{equation}
-  \item seasonality 1: sine with amplitude=0 or $3\sigma$, period=$\frac{N}{9}$, phase=0. N not exact multiple of T1
-  \item seasonality 2: sine with amplitude=0 or $\sigma$, period=$\frac{N}{39}$, phase=$\frac{\pi}{3}$. N not exaxt multiple of T2
-  \item type: additive (''A") or multiplicative (''M")
-\end{itemize}
-
-
-<<echo=FALSE>>=
-# Number of elements in the data set
-N <- 1000
-# Random number generator seed
-set.seed(2019)
-# error parameters
-mu <- 0
-sigma <- 3
-# model parameters
-b0 <- 0
-b1 <- 0.01
-b2 <- 0.00005
-# level (when not zero)
-level <- (1/N)*(b0*(N-1) + (b1/2)*(N^2 -1) + (b2/3)*(N^3 -1))
-# trend
-# seasonality 1
-amp1 <- 3*sigma
-teta1 <- 0
-T1 <- N/9
-# seasonality 2
-amp2 <- sigma
-teta2 <- pi/3
-T2 <- N/39
-@
-
-\subsection{Additive constructed time series}
-<<echo=FALSE>>=
-#
-# creating the additive constructed set
-#
-construct <- data.frame(t = seq(1:N),
-                        error = rnorm(N, mean = mu, sd = sigma),
-                        level = rep(level, N))
-construct %>% mutate(trend = (b0 + b1*t +b2*t^2) - level) -> construct
-construct %>% mutate(season1 = amp1*sin(2*pi*t/T1 + teta1)) -> construct
-construct %>% mutate(season2 = amp2*sin(2*pi*t/T2 + teta2)) -> construct
-@
-
-<<label=additive, fig=TRUE, include=FALSE, echo=FALSE>>=
-p1 <- ggplot(data = construct, aes(x = t)) +
-  geom_line(aes(y = error), size = 1, color="red") +
-  geom_hline(yintercept = mu, linetype = 2) +
-  scale_y_continuous(limits= c(-25, 75)) +
-  JT.theme
-p2 <- ggplot(data = construct, aes(x = t)) +
-  geom_line(aes(y = error + level), size = 1, color="red") +
-  geom_hline(yintercept = level, linetype = 2) +
-  scale_y_continuous(limits= c(-25, 75)) +
-  JT.theme
-p3 <- ggplot(data = construct, aes(x = t)) +
-  geom_line(aes(y = error + level + trend), size = 1, color="red") +
-  geom_hline(yintercept = level, linetype = 2) +
-  scale_y_continuous(limits= c(-25, 75)) +
-  JT.theme
-p4 <- ggplot(data = construct, aes(x = t)) +
-  geom_line(aes(y = error + level + trend + season1 + season2), size = 1, color="red") +
-  geom_hline(yintercept = level, linetype = 2) +
-  scale_y_continuous(limits= c(-25, 75)) +
-  JT.theme
-grid.arrange(p1, p2, p3, p4, nrow=2)
-@
-
-\begin{figure}
-\includegraphics[width=0.7\textwidth]{PTSFR-additive}
-\caption{Additive constructed time series}
-\label{fig:additive}
-\setfloatalignment{b}
-\end{figure}
-
-\newpage
-\subsection{Multiplicative constructed time series}
-
-I'm still stumped by the ease with which multiplicative time series are defined. I find
-\begin{equation}
-y(t)=error(t)*level(t)*trend(t)*seasonality(t)
-\end{equation}
-
-But this multiplication means that $y(t)$ will always be equal to zero whenever one of the factors is zero. 
-
-<<label=level, fig=TRUE, include=FALSE, echo=FALSE>>=
-p1 <- ggplot(data = construct, aes(x = t)) +
-  geom_line(aes(y = level*trend), size=1, color="red") +
-  labs(title="") +
-  JT.theme
-p2 <- ggplot(data = construct, aes(x = t)) +
-  geom_line(aes(y = level*season1), size=1, color="red") +
-  labs(title="") +
-  JT.theme
-grid.arrange(p1, p2, nrow=1)
-@
-
-<<label=trend, fig=TRUE, include=FALSE, echo=FALSE>>=
-p1 <- ggplot(data = construct, aes(x = t)) +
-  geom_line(aes(y = trend*season1), size=1, color="red") +
-  labs(title="") +
-  JT.theme
-p2 <- ggplot(data = construct, aes(x = t)) +
-  geom_line(aes(y = (level+trend)*season1), size=1, color="red") +
-  labs(title="") +
-  JT.theme
-grid.arrange(p1, p2, nrow=1)
-@
-
-<<label=season, fig=TRUE, include=FALSE, echo=FALSE>>=
-p1 <- ggplot(data = construct, aes(x = t)) +
-  geom_line(aes(y = (level+trend)*(1+season1)), size=1, color="red") +
-  labs(title="") +
-  JT.theme
-p2 <- ggplot(data = construct, aes(x = t)) +
-  geom_line(aes(y = (level+trend)*(1+0.05*season1)), size=1, color="red") +
-  labs(title="") +
-  JT.theme
-grid.arrange(p1, p2, nrow=1)
-@
-
-\begin{itemize}
-  \item level*trend or level*season simply multiplies all the trend co\"{e}ffici\"{e}nts by level or the season's amplitude. The general picture remains the same (Figure~\ref{fig:level}).
-    \begin{marginfigure}[-2cm]
-      \includegraphics[width=1\textwidth]{PTSFR-level}
-      \caption{}
-      \label{fig:level}
-      \setfloatalignment{b}
-    \end{marginfigure}
-  \item trend*season1: because of the introduction of level, the trend will be about zero around $t=\frac{N}{2}$. Before that the trend will be negative and getting more negative, after that point the trend will be positive and getting more positive. This means the amplitude of the seasonality will get bigger to the left and to the right, with a phase-shift around $t=\frac{N}{2}$ (Figure~\ref{fig:trend})
-  \item (level+trend)*season: this changes the amplitude of the seasonal component but it loses the overall level and trend (Figure~\ref{fig:trend})
-    \begin{marginfigure}[0cm]
-      \includegraphics[width=1\textwidth]{PTSFR-trend}
-      \caption{}
-      \label{fig:trend}
-      \setfloatalignment{b}
-    \end{marginfigure}
-  \item (level+trend)*(1+season) (Figure~\ref{fig:season})
-  \item (level+trend)*(1+0.05*season) (Figure~\ref{fig:season})
-  \begin{marginfigure}[0cm]
-      \includegraphics[width=1\textwidth]{PTSFR-season}
-      \caption{}
-      \label{fig:season}
-      \setfloatalignment{b}
-    \end{marginfigure}
-\end{itemize}
-
-In the end to obtain the goal that both the amplitude of the seasonal terms and the amount of error are influenced by level and trend can be achieved by combining additive and multiplicative elements in
-\begin{equation}
-y(t) = (level + trend)*(1 + 0.05*(error + season1 + season2))
-\end{equation}
-resulting in Figure~\ref{fig:multiplicative}.
-
-<<label=multiplicative, fig=TRUE, include=FALSE, echo=FALSE>>=
-ggplot(data = construct, aes(x = t)) +
-  geom_line(aes(y = (level+trend)*(1 + 0.05*(error + season1 + season2))), size=1, color="red") +
-  labs(title="") +
-  JT.theme
-@
-
-\begin{figure}
-\includegraphics[width=0.5\textwidth]{PTSFR-multiplicative}
-\caption{multiplicative constructed time series}
-\label{fig:multiplicative}
-\setfloatalignment{b}
-\end{figure}
-
-Let's leave it there for the moment.
 
 \chapter{Approaching Forecasting}
 \section{Forecasting: Where?}
@@ -450,15 +187,243 @@ Even if forecasts are wanted on at time base $T$ we can still aggregate the coll
 
 \section{Time Series Components}
 
-Disecting the time series in a \emph{systematic part}\index{systematic part} and a \emph{non-systematic part}\index{non-systematic part}. The \emph{non-systematic part} is called \emph{noise}\index{noise}. The \emph{systematic part} characterises the series but is hidden and obscured by the noise. The systematic components are:
+\emph{Time series}\index{time series} are a specific sort of data. In constrast with \emph{cross-secional data}\index{cross-sectional data}, which are multiple measurements taken at the same time, \emph{time series} consist of one measurement taken at different moments in time.
+
+Time series can have the following characteristics:
+
+\begin{enumerate}
+  \item error: random fluctuation of values
+  \item level: mean value of the series
+  \item trend: gradual evolution without repetition
+  \item seasonality: periodic behaviour with characteristic period $T_{i}$. Multiple periodicity is possible
+\end{enumerate}
+
+The use of \emph{level}\index{level} and \emph{trend}\index{trend} as separate characteristics is different from normal usage in model building where both are incorporated into the model equation. Thus if we model the general behaviour of $y$ as a function of $t$ by a polynomial:
+\begin{equation}
+y(t)=b_{0} + b_{1}t + b_{2}t^{2} + \ldots b_{i}t^{i} + \ldots = p(t)
+\end{equation}
+
+and we define the level as $\bar{y}$ then the \emph{trend} in the sense as defined above is given by:
+\begin{equation}
+trend = p(t) - \bar{y} = \left( b_{0} - \bar{y} \right) + b_{1}t + b_{2}t^{2} + \ldots b_{i}t^{i} + \ldots 
+\end{equation}
+
+The book\sidenote{Practical Time Series Forecasting with R - Galit Shmueli and Kenneth C. Lichtendahl Jr.} refers to examples of \emph{level} and \emph{trend} by Jim Flower (\url{http://techweb.bsu.edu/jcflowers1/rlo/trends.htm}). However, in his paragraph on ''Some Common Types of Trends" he says:
+
+\textit{Trends are often shown graphically (as line graphs) with the level of a dependent variable on the y-axis and the time period on the x-axis. There are different types of trends, including the following:
 \begin{itemize}
-	\item \emph{level}\index{level}: this is the \emph{average} of the time series
-	\item \emph{trend}\index{trend}: this is \emph{the change in the series from one period to the other}. \textbf{This is a strange way of formulating trend!} The change from one period to the other looks like a first derivative. So if $y(t)$ is ''underlying" defined by the polynomial $p(t)$ then
-	\begin{eqnarray}
-    level & = & \overline{p(t)} = \frac{1}{t_{max}}\int_{0}^{t_max} p(t)dt \\
-    trend & = & \frac{d}{dt}p(t)
-  \end{eqnarray}
+	\item constant
+	\item linear
+	\item exponential
+	\item damped
 \end{itemize}
+}
+
+In the example graphs given by Flower, he only uses the word ''trend", and he says nothing about ''level". This gives the impression that ''trend" here is used in the traditional modeling sense i.e. ''trend"=trend+level. In what follows I will only use the characteristic ''level" where needed and consider it to be equal to the average of the ''trend" in the modeling sense of the word. 
+
+Time series can be constructed by \emph{adding} or \emph{multiplying} or \emph{combinations of adding and multiplying} these basic characteristics. \emph{Multiplication} is used when e.g. the amplitude of an seasonal characteristic is linked to the trend. Multiplying a trend with a sine function (seasonality) will increase the amplitude of the sine function when the trend is rising, and decrease the amplitude when the trend is falling. The same can be said for multiplying the trend and the error term: bigger errors when the trend rises, smaller when it falls.
+
+This gives a lot of possible combinations. If we limit ourselves to a maximum of two seasonal elements, and either a completely additive or a completely multiplicative type we get $2^5 = 32$ combinations:
+
+\begin{tabular}{r | c | c}
+characteristic & 0 = not present & 1 = present \\
+\hline
+error & 0 & 1 \\
+trend & 0 & 1 \\
+seasonality 1 & 0 & 1 \\
+seasonality 2 & 0 & 1 \\
+type & A & M
+\end{tabular}
+
+However, some of these 32 possibilities are not interesting or self evident:
+\begin{itemize}
+  \item all multiplicative constructed time series where one of the characteristics is 0, have the same end result i.e. zero everywhere
+  \item some models without an error term. Where we have only trend the graph is given by the polynomial $p(t)$ (or another function) and  forecasting is a, tentative, extrapolation
+\end{itemize}
+
+The interesting ones are:
+\begin{enumerate}
+  \item additively created time series:
+    \begin{itemize}
+      \item without error
+        \begin{itemize}
+          \item trend + seasonality 1
+          \item trend + seasonality 1 + seasonality 2
+        \end{itemize}
+      \item with error
+        \begin{itemize}
+          \item error
+          \item error + trend
+          \item error + trend + seasonality 1
+          \item error + trend + seasonality 1 + seasonality 2
+        \end{itemize}
+      \end{itemize}
+  \item multiplicatively created time series:
+    \begin{itemize}
+      \item without error
+        \begin{itemize}
+          \item trend*seasonality 1
+          \item trend*seasonality 1*seasonality 2
+        \end{itemize}
+      \item with error
+        \begin{itemize}
+          \item error*trend
+          \item error*trend*seasonality 1
+          \item error*trend*seasonality 1*seasonality 2
+        \end{itemize}
+    \end{itemize}
+\end{enumerate}
+
+\section{Constructed data sets}
+\label{sec:constructed}
+\begin{itemize}
+  \item number of elements per time series: N=1000
+  \item time step unit: 1
+  \item error: random from normal distributiion with $\mu=0$, $\sigma=3$. Random number generator seed: 2019
+  \item trend: polynomial. We restrict ourselves to models $y=p(x)$ with second degree polynomials (or first degree when $b_{2}=0$) with co\"{e}ffici\"{e}nts $b_{0}=0$, $b_{1}=0.01$ and $b_{2}=0.00005$. 
+  \item seasonality 1: sine with amplitude=0 or $3\sigma$, period=$\frac{N}{9}$, phase=0. N not exact multiple of T1
+  \item seasonality 2: sine with amplitude=0 or $\sigma$, period=$\frac{N}{39}$, phase=$\frac{\pi}{3}$. N not exaxt multiple of T2
+  \item type: additive (''A") or multiplicative (''M")
+\end{itemize}
+
+<<echo=FALSE>>=
+# Number of elements in the data set
+N <- 1000
+# Random number generator seed
+set.seed(2019)
+# error parameters
+mu <- 0
+sigma <- 3
+# trend model parameters
+b0 <- 0
+b1 <- 0.01
+b2 <- 0.00005
+# level
+level <- b0 + (b1/2)*N + (b2/3)*N^2
+# seasonality 1
+amp1 <- 3*sigma
+teta1 <- 0
+T1 <- N/9
+# seasonality 2
+amp2 <- sigma
+teta2 <- pi/3
+T2 <- N/39
+@
+
+\newpage
+\subsection{Additive constructed time series}
+<<echo=FALSE>>=
+#
+# creating the additive constructed set
+#
+construct <- data.frame(t = seq(1:N),
+                        error = rnorm(N, mean = mu, sd = sigma))
+construct %>% mutate(trend = (b0 + b1*t +b2*t^2)) -> construct
+construct %>% mutate(season1 = amp1*sin(2*pi*t/T1 + teta1)) -> construct
+construct %>% mutate(season2 = amp2*sin(2*pi*t/T2 + teta2)) -> construct
+@
+
+<<label=additive, fig=TRUE, include=FALSE, echo=FALSE>>=
+p1 <- ggplot(data = construct, aes(x = t)) +
+  geom_line(aes(y = error), size = 1, color="red") +
+  geom_hline(yintercept = mu, linetype = 2) +
+  scale_y_continuous(limits= c(-25, 75)) +
+  JT.theme
+p2 <- ggplot(data = construct, aes(x = t)) +
+  geom_line(aes(y = error + trend), size = 1, color="red") +
+  geom_hline(yintercept = level, linetype = 2) +
+  scale_y_continuous(limits= c(-25, 75)) +
+  JT.theme
+p3 <- ggplot(data = construct, aes(x = t)) +
+  geom_line(aes(y = error + trend + season1), size = 1, color="red") +
+  geom_hline(yintercept = level, linetype = 2) +
+  scale_y_continuous(limits= c(-25, 75)) +
+  JT.theme
+p4 <- ggplot(data = construct, aes(x = t)) +
+  geom_line(aes(y = error + trend + season1 + season2), size = 1, color="red") +
+  geom_hline(yintercept = level, linetype = 2) +
+  scale_y_continuous(limits= c(-25, 75)) +
+  JT.theme
+grid.arrange(p1, p2, p3, p4, nrow=2)
+@
+
+\begin{figure}
+\includegraphics[width=0.7\textwidth]{PTSFR-additive}
+\caption{Additive constructed time series}
+\label{fig:additive}
+\setfloatalignment{b}
+\end{figure}
+
+\subsection{Multiplicative constructed time series}
+
+The definition of a multiplicative time series is:
+\begin{equation}
+y(t)=error(t)*trend(t)*seasonality(t)
+\end{equation}
+
+<<label=trend, fig=TRUE, include=FALSE, echo=FALSE>>=
+p1 <- ggplot(data = construct, aes(x = t)) +
+  geom_line(aes(y = trend*season1), size=1, color="red") +
+  labs(title="") +
+  JT.theme
+p2 <- ggplot(data = construct, aes(x = t)) +
+  geom_line(aes(y = trend*(season1 + season2), size=1, color="red")) +
+  labs(title="") +
+  JT.theme
+grid.arrange(p1, p2, nrow=1)
+@
+
+<<label=season, fig=TRUE, include=FALSE, echo=FALSE>>=
+p1 <- ggplot(data = construct, aes(x = t)) +
+  geom_line(aes(y = trend*(1+season1)), size=1, color="red") +
+  labs(title="") +
+  JT.theme
+p2 <- ggplot(data = construct, aes(x = t)) +
+  geom_line(aes(y = trend*(1+0.05*season1)), size=1, color="red") +
+  labs(title="") +
+  JT.theme
+grid.arrange(p1, p2, nrow=1)
+@
+
+But the multiplication means that $y(t)$ will always be equal to zero whenever one of the factors is zero. Let's look at some combinations of characteristics:
+\begin{itemize}
+  \item trend*season: this changes the amplitude of the seasonal component but it loses the overall trend (Figure~\ref{fig:trend})
+    \begin{marginfigure}[0cm]
+      \includegraphics[width=1\textwidth]{PTSFR-trend}
+      \caption{}
+      \label{fig:trend}
+      \setfloatalignment{b}
+    \end{marginfigure}
+  \item trend*(1+season) (Figure~\ref{fig:season})
+  \item trend*(1+0.05*season) (Figure~\ref{fig:season})
+  \begin{marginfigure}[0cm]
+      \includegraphics[width=1\textwidth]{PTSFR-season}
+      \caption{}
+      \label{fig:season}
+      \setfloatalignment{b}
+    \end{marginfigure}
+\end{itemize}
+
+In the end to obtain the goal that both the amplitude of the seasonal terms and the amount of error are influenced by trend we have to combine additive and multiplicative elements in
+\begin{equation}
+y(t) = trend*(1 + 0.05*(error + season1 + season2))
+\end{equation}
+resulting in Figure~\ref{fig:multiplicative}.
+
+<<label=multiplicative, fig=TRUE, include=FALSE, echo=FALSE>>=
+ggplot(data = construct, aes(x = t)) +
+  geom_line(aes(y = trend*(1 + 0.05*(error + season1 + season2))), size=1, color="red") +
+  labs(title="") +
+  JT.theme
+@
+
+\begin{figure}
+\includegraphics[width=0.5\textwidth]{PTSFR-multiplicative}
+\caption{multiplicative constructed time series}
+\label{fig:multiplicative}
+\setfloatalignment{b}
+\end{figure}
+
 
 
 
