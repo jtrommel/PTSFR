@@ -60,6 +60,7 @@
 
 <<echo=FALSE>>=
 library(tidyverse)
+library(lubridate)
 library(broom)
 library(gridExtra)
 @
@@ -91,8 +92,6 @@ JT.theme <- theme(panel.border = element_rect(fill = NA, colour = "gray10"),
 
 \mainmatter
 
-
-
 \chapter{Approaching Forecasting}
 \section{Forecasting: Where?}
 Everywhere
@@ -118,25 +117,6 @@ Everywhere
 	\item evaluate, compare performance (chapter 3)
 	\item implement forecasting system (chapter 10)
 \end{enumerate}
-
-
-\newthought{Example: Ridership on Amtrak Trains}
-
-<<label=Amdata,fig=TRUE,include=FALSE, echo=FALSE>>=
-Amtrak.data <- read.csv("Data/Amtrak data.csv", sep=";")
-Amtrak.data$nr <- c(1:nrow(Amtrak.data))
-ggplot(data=Amtrak.data) +
-  geom_line(aes(x=nr, y=Ridership), size=1, color="red") +
-  labs(title="Amtrak Ridership data") +
-  JT.theme
-@
-
-\begin{marginfigure}
-\includegraphics[width=1\textwidth]{PTSFR-Amdata}
-\caption{}
-\label{fig:Amdata}
-\setfloatalignment{b}
-\end{marginfigure}
 
 \section{Goal definition}
 
@@ -308,6 +288,8 @@ T1 <- N/9
 amp2 <- sigma
 teta2 <- pi/3
 T2 <- N/39
+# constant for combined additive/multiplicative time series
+c <- 0.05
 @
 
 \newpage
@@ -345,6 +327,7 @@ p4 <- ggplot(data = construct, aes(x = t)) +
   scale_y_continuous(limits= c(-25, 75)) +
   JT.theme
 grid.arrange(p1, p2, p3, p4, nrow=2)
+construct %>% mutate(addcon = error + trend + season1 + season2) -> construct
 @
 
 \begin{figure}
@@ -353,6 +336,8 @@ grid.arrange(p1, p2, p3, p4, nrow=2)
 \label{fig:additive}
 \setfloatalignment{b}
 \end{figure}
+
+This time series is stored in the data frame \textit{construct} in column \textit{addcon}.
 
 \subsection{Multiplicative constructed time series}
 
@@ -373,19 +358,19 @@ p2 <- ggplot(data = construct, aes(x = t)) +
 grid.arrange(p1, p2, nrow=1)
 @
 
-<<label=season, fig=TRUE, include=FALSE, echo=FALSE>>=
+<<label=error, fig=TRUE, include=FALSE, echo=FALSE>>=
 p1 <- ggplot(data = construct, aes(x = t)) +
-  geom_line(aes(y = trend*(1+season1)), size=1, color="red") +
+  geom_line(aes(y = error*trend), size=1, color="red") +
   labs(title="") +
   JT.theme
 p2 <- ggplot(data = construct, aes(x = t)) +
-  geom_line(aes(y = trend*(1+0.05*season1)), size=1, color="red") +
+  geom_line(aes(y = error*trend*season1, size=1, color="red")) +
   labs(title="") +
   JT.theme
 grid.arrange(p1, p2, nrow=1)
 @
 
-But the multiplication means that $y(t)$ will always be equal to zero whenever one of the factors is zero. Let's look at some combinations of characteristics:
+But the multiplication means that $y(t)$ will always be equal to zero whenever one of the factors is zero\sidenote[][-1cm]{\url{https://fs.blog/2016/08/multiplicative-systems/}}. Let's look at some combinations of characteristics:
 \begin{itemize}
   \item trend*season: this changes the amplitude of the seasonal component but it loses the overall trend (Figure~\ref{fig:trend})
     \begin{marginfigure}[0cm]
@@ -394,27 +379,31 @@ But the multiplication means that $y(t)$ will always be equal to zero whenever o
       \label{fig:trend}
       \setfloatalignment{b}
     \end{marginfigure}
-  \item trend*(1+season) (Figure~\ref{fig:season})
-  \item trend*(1+0.05*season) (Figure~\ref{fig:season})
+  \item error*trend and error*trend*season (Figure~\ref{fig:error})
   \begin{marginfigure}[0cm]
-      \includegraphics[width=1\textwidth]{PTSFR-season}
+      \includegraphics[width=1\textwidth]{PTSFR-error}
       \caption{}
-      \label{fig:season}
+      \label{fig:error}
       \setfloatalignment{b}
     \end{marginfigure}
 \end{itemize}
 
+These time series constructions with multiplication do not give the desirede result: the trend only changes the amplitude of the seasonal component and/or the error term, but the trend itself is lost.
+
+\newpage
+\subsection{Combined additive and multiplicative constructed time series}
 In the end to obtain the goal that both the amplitude of the seasonal terms and the amount of error are influenced by trend we have to combine additive and multiplicative elements in
 \begin{equation}
-y(t) = trend*(1 + 0.05*(error + season1 + season2))
+y(t) = trend*(1 + c*(error + season1 + season2)) \quad c=0.05
 \end{equation}
 resulting in Figure~\ref{fig:multiplicative}.
 
 <<label=multiplicative, fig=TRUE, include=FALSE, echo=FALSE>>=
 ggplot(data = construct, aes(x = t)) +
-  geom_line(aes(y = trend*(1 + 0.05*(error + season1 + season2))), size=1, color="red") +
+  geom_line(aes(y = trend*(1 + c*(error + season1 + season2))), size=1, color="red") +
   labs(title="") +
   JT.theme
+construct %>% mutate(combicon = trend*(1 + c*(error + season1 + season2))) -> construct
 @
 
 \begin{figure}
@@ -424,6 +413,60 @@ ggplot(data = construct, aes(x = t)) +
 \setfloatalignment{b}
 \end{figure}
 
+This time series is stored in the data frame \textit{construct} in column \textit{combicon}.
+
+\section{Visualising Time Series}
+
+A visualisation of the time series will give us a first, visual, indication of the nature of the series. We can look for \emph{missing} or \emph{extreme values}, \emph{unequal spacing} and \emph{patterns}.
+
+A first and obvious plot is a line chart of the series as a function of time. \textit{ggplot} does this very well.
+
+\newthought{Example: Ridership on Amtrak Trains}
+
+<<label=Amdata,fig=TRUE,include=FALSE, echo=FALSE>>=
+Amtrak.data <- read.csv("Data/Amtrak data.csv", sep=";")
+Amtrak.data$t <- c(1:nrow(Amtrak.data))
+ggplot(data=Amtrak.data) +
+  geom_line(aes(x=t, y=Ridership), size=1, color="red") +
+  labs(title="Amtrak Ridership data") +
+  JT.theme
+@
+
+\begin{marginfigure}
+\includegraphics[width=1\textwidth]{PTSFR-Amdata}
+\caption{}
+\label{fig:Amdata}
+\setfloatalignment{b}
+\end{marginfigure}
+
+
+\newpage
+Other operations are:
+\subsection{Zooming in}
+We use the time series of the number of vehicles in the Baregg Tunnel.
+
+<<label=Baregg,fig=TRUE,include=FALSE, echo=FALSE>>=
+Baregg.data <- read.csv("Data/BareggTunnelTraffic.csv", sep=",",  stringsAsFactors = FALSE)
+Baregg.data$t <- c(1:nrow(Baregg.data))
+Baregg.data$day <- dmy(Baregg.data$day)
+p1 <- ggplot(data=Baregg.data) +
+  geom_line(aes(x=day, y=number), size=1, color="red") +
+  labs(title="Number of vehicles in Baregg Tunnel") +
+  JT.theme
+p2 <- ggplot(data=Baregg.data) +
+  geom_line(aes(x=day, y=number), size=1, color="red") +
+  scale_x_date(limits = as.Date(c("2004-02-01","2004-05-31"))) +
+  labs(title="Number of vehicles in Baregg Tunnel\nzooming from 1-Feb-2004 to 31-May-2004") +
+  JT.theme
+grid.arrange(p1, p2, nrow=2)
+@
+
+\begin{figure}
+\includegraphics[width=1\textwidth]{PTSFR-Baregg}
+\caption{}
+\label{fig:Baregg}
+\setfloatalignment{b}
+\end{figure}
 
 
 
