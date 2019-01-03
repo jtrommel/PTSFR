@@ -443,6 +443,7 @@ ggplot(data=Amtrak.data) +
 \newpage
 Other operations are:
 \subsection{Zooming in}
+\newthought{Example} 
 We use the time series of the number of vehicles in the Baregg Tunnel.
 
 <<label=Baregg,fig=TRUE,include=FALSE, echo=FALSE>>=
@@ -455,18 +456,82 @@ p1 <- ggplot(data=Baregg.data) +
   JT.theme
 p2 <- ggplot(data=Baregg.data) +
   geom_line(aes(x=day, y=number), size=1, color="red") +
-  scale_x_date(limits = as.Date(c("2004-02-01","2004-05-31"))) +
+  scale_x_date(limits = dmy(c("01-02-2004","31-05-2004")), breaks = dmy(c("01-02-2004", "01-03-2004", "01-04-2004", "01-05-2004", "31-05-2004")))  +
   labs(title="Number of vehicles in Baregg Tunnel\nzooming from 1-Feb-2004 to 31-May-2004") +
   JT.theme
-grid.arrange(p1, p2, nrow=2)
+p3 <- ggplot(data=Baregg.data) +
+  geom_line(aes(x=day, y=number), size=1, color="red") +
+  scale_x_date(limits = dmy(c("01-02-2004","08-02-2004")), breaks = dmy(c("01-02-2004", "02-02-2004", "03-02-2004", "04-02-2004", "05-02-2004", "06-02-2004", "07-02-2004", "08-02-2004")))  +
+  labs(title="Number of vehicles in Baregg Tunnel\nzooming week of 1-Feb-2004") +
+  JT.theme
+grid.arrange(p1, p2, p3, nrow=3)
 @
 
 \begin{figure}
-\includegraphics[width=1\textwidth]{PTSFR-Baregg}
+\includegraphics[width=0.85\textwidth]{PTSFR-Baregg}
 \caption{}
 \label{fig:Baregg}
 \setfloatalignment{b}
 \end{figure}
+
+\newthought{addcon time series}
+<<label=addconviz,fig=TRUE,include=FALSE, echo=FALSE>>=
+p1 <- ggplot(data=construct, aes(x=t)) +
+  geom_line(aes(y=addcon), size=1, color="red") +
+  labs(title="Additive constructed model\nfull range") +
+  JT.theme
+p2 <- ggplot(data=construct, aes(x=t)) +
+  geom_line(aes(y=addcon), size=1, color="red") +
+  scale_x_continuous(limits = c(250,500), breaks = seq(250, 500, by=25))  +
+  scale_y_continuous(limits = c(-10,40), breaks = seq(-10, 40, by=5))  +
+  labs(title="Additive constructed model\nrange = 250 - 500") +
+  JT.theme
+p3 <- ggplot(data=construct, aes(x=t)) +
+  geom_line(aes(y=addcon), size=1, color="red") +
+  scale_x_continuous(limits = c(275,285), breaks = seq(275, 285, by=1))  +
+  scale_y_continuous(limits = c(-15,15), breaks = seq(-15, 15, by=2))  +
+  labs(title="Additive constructed model\nrange = 275 - 285") +
+  JT.theme
+grid.arrange(p1, p2, p3, nrow=3)
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-addconviz}
+\caption{}
+\label{fig:addconviz}
+\setfloatalignment{b}
+\end{figure}
+First we plot the whole range. Then we determine the range where we can see a few periods of a possible seasonal. Then we go in for some more detail(Figure~\ref{fig:addconviz}).
+
+\newthought{combicon time series}
+<<label=combiconviz,fig=TRUE,include=FALSE, echo=FALSE>>=
+p1 <- ggplot(data=construct, aes(x=t)) +
+  geom_line(aes(y=combicon), size=1, color="red") +
+  labs(title="Combined constructed model\nfull range") +
+  JT.theme
+p2 <- ggplot(data=construct, aes(x=t)) +
+  geom_line(aes(y=combicon), size=1, color="red") +
+  scale_x_continuous(limits = c(250,500), breaks = seq(250, 500, by=25))  +
+  scale_y_continuous(limits = c(0,35), breaks = seq(0, 35, by=5))  +
+  labs(title="Combined constructed model\nrange = 250 - 500") +
+  JT.theme
+p3 <- ggplot(data=construct, aes(x=t)) +
+  geom_line(aes(y=combicon), size=1, color="red") +
+  scale_x_continuous(limits = c(350,375), breaks = seq(350, 375, by=1))  +
+  scale_y_continuous(limits = c(7.5,17.5), breaks = seq(7.5, 17.5, by=2.5))  +
+  labs(title="Combined constructed model\nrange = 350 - 375") +
+  JT.theme
+grid.arrange(p1, p2, p3, nrow=3)
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-combiconviz}
+\caption{}
+\label{fig:combiconviz}
+\setfloatalignment{b}
+\end{figure}
+
+First we plot the whole range. Then we determine the range where we can see a few periods of a possible seasonal. Then we go in for some more detail (Figure~\ref{fig:combiconviz})
 
 
 
