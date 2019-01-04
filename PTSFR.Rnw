@@ -482,14 +482,14 @@ p1 <- ggplot(data=construct, aes(x=t)) +
   JT.theme
 p2 <- ggplot(data=construct, aes(x=t)) +
   geom_line(aes(y=addcon), size=1, color="red") +
-  scale_x_continuous(limits = c(250,500), breaks = seq(250, 500, by=25))  +
+  scale_x_continuous(limits = c(250,500), breaks = seq(250, 500, by=10))  +
   scale_y_continuous(limits = c(-10,40), breaks = seq(-10, 40, by=5))  +
   labs(title="Additive constructed model\nrange = 250 - 500") +
   JT.theme
 p3 <- ggplot(data=construct, aes(x=t)) +
   geom_line(aes(y=addcon), size=1, color="red") +
   scale_x_continuous(limits = c(275,285), breaks = seq(275, 285, by=1))  +
-  scale_y_continuous(limits = c(-15,15), breaks = seq(-15, 15, by=2))  +
+  scale_y_continuous(limits = c(-5,15), breaks = seq(-5, 15, by=1))  +
   labs(title="Additive constructed model\nrange = 275 - 285") +
   JT.theme
 grid.arrange(p1, p2, p3, nrow=3)
@@ -501,7 +501,8 @@ grid.arrange(p1, p2, p3, nrow=3)
 \label{fig:addconviz}
 \setfloatalignment{b}
 \end{figure}
-First we plot the whole range. Then we determine the range where we can see a few periods of a possible seasonal. Then we go in for some more detail(Figure~\ref{fig:addconviz}).
+
+First we plot the whole range. Then we determine the range where we can see a few periods of a possible seasonal. Then we go in for some more detail(Figure~\ref{fig:addconviz}). Looking at the top graph I can see a seasonal pattern of approximatively 9 periods over a range from 0 to 1000. A first estimate for the seasonal component is that it has a period of 111 (not bad given that it is N/9). The other, more detailed graphs, do not improve on this.
 
 \newthought{combicon time series}
 <<label=combiconviz,fig=TRUE,include=FALSE, echo=FALSE>>=
@@ -511,7 +512,7 @@ p1 <- ggplot(data=construct, aes(x=t)) +
   JT.theme
 p2 <- ggplot(data=construct, aes(x=t)) +
   geom_line(aes(y=combicon), size=1, color="red") +
-  scale_x_continuous(limits = c(250,500), breaks = seq(250, 500, by=25))  +
+  scale_x_continuous(limits = c(250,500), breaks = seq(250, 500, by=10))  +
   scale_y_continuous(limits = c(0,35), breaks = seq(0, 35, by=5))  +
   labs(title="Combined constructed model\nrange = 250 - 500") +
   JT.theme
@@ -531,8 +532,9 @@ grid.arrange(p1, p2, p3, nrow=3)
 \setfloatalignment{b}
 \end{figure}
 
-First we plot the whole range. Then we determine the range where we can see a few periods of a possible seasonal. Then we go in for some more detail (Figure~\ref{fig:combiconviz})
+First we plot the whole range. Then we determine the range where we can see a few periods of a possible seasonal. Then we go in for some more detail (Figure~\ref{fig:combiconviz}). The top graph shows a seasonal pattern that starts around t=125 and ends at t=1000 after 8 periods. A first estimate for the seasonal component is that it has a period of (1000 - 125)/8=109,4 (again not bad given that it is N/9). The other, more detailed graphs, do not improve on this.
 
+We can do the visualising perfectly with \textit{ggplot}, so as yet we don't need to force the data into a time series object. Doing so requires you to select a value for the parameter ''frequency". While this parameter can be chosen reasonably in certain situations (e.f. the Amtrak data where values are recorded monthly and we can assume a seasonality of 1 year = 12 months), it is (at present) not so clear for the Belragg data or the constructed time series (addcon and combicon).
 
 
 \printindex
