@@ -63,6 +63,7 @@ library(tidyverse)
 library(lubridate)
 library(broom)
 library(gridExtra)
+library(writexl)
 @
 
 % Setting the ggplot theme:
@@ -328,6 +329,7 @@ p4 <- ggplot(data = construct, aes(x = t)) +
   JT.theme
 grid.arrange(p1, p2, p3, p4, nrow=2)
 construct %>% mutate(addcon = error + trend + season1 + season2) -> construct
+write_xlsx(data.frame(t = construct$t,addcon = construct$addcon), "Data/addcon.xlsx")
 @
 
 \begin{figure}
@@ -337,7 +339,7 @@ construct %>% mutate(addcon = error + trend + season1 + season2) -> construct
 \setfloatalignment{b}
 \end{figure}
 
-This time series is stored in the data frame \textit{construct} in column \textit{addcon}.
+This time series is stored in the data frame \textit{construct} in column \textit{addcon}. It is also stored as an Excel-spreadsheet (\textif{addcon.xlsx}).
 
 \subsection{Multiplicative constructed time series}
 
@@ -404,6 +406,7 @@ ggplot(data = construct, aes(x = t)) +
   labs(title="") +
   JT.theme
 construct %>% mutate(combicon = trend*(1 + c*(error + season1 + season2))) -> construct
+write_xlsx(data.frame(t = construct$t,combicon = construct$combicon), "Data/combicon.xlsx")
 @
 
 \begin{figure}
@@ -424,7 +427,9 @@ A first and obvious plot is a line chart of the series as a function of time. \t
 \newthought{Example: Ridership on Amtrak Trains}
 
 <<label=Amdata,fig=TRUE,include=FALSE, echo=FALSE>>=
-Amtrak.data <- read.csv("Data/Amtrak data.csv", sep=";")
+Amtrak.data <- read.csv("Data/Amtrak data.csv", sep=";", stringsAsFactors = FALSE)
+# transforming the ''Month" column into a proper date variable
+Amtrak.data %>%  mutate(day = myd(paste0(Month, "-01"))) -> Amtrak.data
 Amtrak.data$t <- c(1:nrow(Amtrak.data))
 ggplot(data=Amtrak.data) +
   geom_line(aes(x=t, y=Ridership), size=1, color="red") +
@@ -447,7 +452,7 @@ Other operations are:
 We use the time series of the number of vehicles in the Baregg Tunnel.
 
 <<label=Baregg,fig=TRUE,include=FALSE, echo=FALSE>>=
-Baregg.data <- read.csv("Data/BareggTunnelTraffic.csv", sep=",",  stringsAsFactors = FALSE)
+Baregg.data <- read.csv("Data/BareggTunnelTraffic.csv", sep=",", stringsAsFactors = FALSE)
 Baregg.data$t <- c(1:nrow(Baregg.data))
 Baregg.data$day <- dmy(Baregg.data$day)
 p1 <- ggplot(data=Baregg.data) +
@@ -497,7 +502,7 @@ grid.arrange(p1, p2, p3, nrow=3)
 
 \begin{figure}
 \includegraphics[width=0.85\textwidth]{PTSFR-addconviz}
-\caption{}
+\caption{Various levels of detail}
 \label{fig:addconviz}
 \setfloatalignment{b}
 \end{figure}
@@ -527,14 +532,134 @@ grid.arrange(p1, p2, p3, nrow=3)
 
 \begin{figure}
 \includegraphics[width=0.85\textwidth]{PTSFR-combiconviz}
-\caption{}
+\caption{Various levels of detail}
 \label{fig:combiconviz}
 \setfloatalignment{b}
 \end{figure}
 
 First we plot the whole range. Then we determine the range where we can see a few periods of a possible seasonal. Then we go in for some more detail (Figure~\ref{fig:combiconviz}). The top graph shows a seasonal pattern that starts around t=125 and ends at t=1000 after 8 periods. A first estimate for the seasonal component is that it has a period of (1000 - 125)/8=109,4 (again not bad given that it is N/9). The other, more detailed graphs, do not improve on this.
 
-We can do the visualising perfectly with \textit{ggplot}, so as yet we don't need to force the data into a time series object. Doing so requires you to select a value for the parameter ''frequency". While this parameter can be chosen reasonably in certain situations (e.f. the Amtrak data where values are recorded monthly and we can assume a seasonality of 1 year = 12 months), it is (at present) not so clear for the Belragg data or the constructed time series (addcon and combicon).
+\newthought{Time Series Objects in R and the parameter frequency}
+We can do the visualising perfectly with \textit{ggplot}, which means that az yet we don't need to force the data into a time series object\index{time series object}. Doing so requires you to select a value for the parameter ''frequency"\index{time series!frequency}. First of all: it is \textbf{NOT} a frequency, but a period! Not Hz but sec (or other time scale). While this parameter can be chosen reasonably in certain situations (e.f. the Amtrak data where values are recorded monthly and we can assume a seasonality of 1 year = 12 months), it is (at present) not so clear for the Belragg data or the constructed time series (addcon and combicon). Rob Hyndman\sidenote{\url{https://otexts.org/fpp2/}} gives a few examples:
+\begin{itemize}
+	\item if you have monthly records, set the frequency to 12. The assumption is that the seasonality has a period of one year
+	\item if you have weekly records, set the frequency to 52. Again the assumption is that the seasonality has a period of one year. However: a year is not exactly 52 weeks, but 52,14... However: most time series objects cannot have a non-integer frequency parameter
+	\item if you have daily records, set the frequency to 7. Here we assume that many variables will show a weekly pattern (working days on the one hand, weekend on the other). So for the Belragg data is could be sensible to set the parameter frequency to 7.
+\end{itemize}
+
+\newthought{Amtrak Riderschip as a time series object}
+<<label=Amtrakts, fig=TRUE, include=FALSE, echo=FALSE>>=
+ridership.ts <- ts(Amtrak.data$Ridership, start = c(1991,1), end = c(2004,3), frequency = 12)
+plot(ridership.ts, xlab = "Time", ylab = "Ridership", ylim = c(1300, 2300), bty = "l")
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-Amtrakts}
+\caption{Amtrak Riderschip as a time series object}
+\label{fig:Amtrakts}
+\setfloatalignment{b}
+\end{figure}
+
+\newthought{Example: Baregg Number of Vehicles as a time series object}
+The data are collected daily, starting on 2003-11-01. That is the start of week 44 in the year 2003. When we group them  in a weekly pattern (frequency=7) we can create the following time series object:
+
+<<label=Bareggts, fig=TRUE, include=FALSE, echo=FALSE>>=
+number.ts <- ts(Baregg.data$number, start = c(44,1), frequency = 7)
+plot(number.ts, xlab = "Time", ylab = "Number of vehicles in Baregg tunnel", ylim = c(50000, 150000), bty = "l")
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-Bareggts}
+\caption{Baregg Number of Vehicles as a time series object}
+\label{fig:Bareggts}
+\setfloatalignment{b}
+\end{figure}
+
+\newpage
+\subsection{Change the scale}
+Meant is: try a transformation. If a trend is exponential, a log-transformation\sidenote{all y-values have to be positive for such a transformation!} will lead to a linear relation, which is much easier to spot. Let's try this for the addcon-time series:
+
+<<label=addconscale, fig=TRUE, include=FALSE, echo=FALSE>>=
+ggplot(data=construct, aes(x=t)) +
+  geom_line(aes(y=log(addcon)), size=1, color="red") +
+  labs(title="Log-transformed addcom time series") +
+  JT.theme
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-addconscale}
+\caption{}
+\label{fig:addconscale}
+\setfloatalignment{b}
+\end{figure}
+
+\subsection{Add a trend line}
+The advice here is to do this preliminary work in Excel (or Numbers). The function "add trendline" allows for a quick an dirty check.
+
+In Figure~\ref{fig:addconnumberstrend}) and Figure~\ref{fig:combiconnumberstrend} we can see the trendlines with the highest $R^{2}$ values. For the ''addcon" time series this a second degree polynomial (surprise!), for the ''combicon" time series it is a power law approximation.
+
+\begin{marginfigure}[-2cm]
+\includegraphics[width=0.85\textwidth]{PTSFR-addconnumberstrend}
+\caption{Trend with Numbers for addcon}
+\label{fig:addconnumberstrend}
+\setfloatalignment{b}
+\end{marginfigure}
+
+\begin{marginfigure}[0cm]
+\includegraphics[width=0.85\textwidth]{PTSFR-combiconnumberstrend}
+\caption{Trend with Numbers for combicon}
+\label{fig:combiconnumberstrend}
+\setfloatalignment{b}
+\end{marginfigure}
+
+\newpage
+\subsection{Suppressing seasonality}
+
+It is often easier to see trends in the data when seasonality is suppressed. We can use:
+
+<<label=Amtrakagg, fig=TRUE, include=FALSE, echo=FALSE>>=
+    Amtrak.data %>% group_by(year(day), quarter(day)) %>% summarise(mean(Ridership)) -> Amtrak.year
+    names(Amtrak.year) <- c("year","quarter", "mean")
+    Amtrak.year$yrqt <- paste(as.character(Amtrak.year$year), "-", Amtrak.year$quarter)
+    Amtrak.year <- as.data.frame(Amtrak.year)
+    ggplot(data = Amtrak.year) +
+      geom_line(aes(x=yrqt, y= mean, group=1), size=1, color="red") +
+      theme(axis.text.x=element_text(angle=-45, hjust=0.001)) +
+      labs(title="Quarterly average of riderschip") +
+      JT.theme
+@
+
+<<label=Bareggagg, fig=TRUE, include=FALSE, echo=FALSE>>=
+    Baregg.data %>% group_by(year(day), month(day)) %>% summarise(mean(number)) -> Baregg.month
+    names(Baregg.month) <- c("year", "month","mean")
+    Baregg.month$yrmt <- paste(as.character(Baregg.month$year), "-", Baregg.month$month)
+    Baregg.month <- as.data.frame(Baregg.month)
+    ggplot(data = Baregg.month) +
+      geom_line(aes(x=yrmt, y= mean, group=1), size=1, color="red") +
+      theme(axis.text.x=element_text(angle=-45, hjust=0.001)) +
+      labs(title="Monthly average of numbers in Baregg tunnel") +
+      JT.theme
+@ 
+
+\begin{itemize}
+	\item a larger time scale: aggregating daily data into weeks or months, monthly data into years.
+	\begin{enumerate}
+	  \item \newthought{Amtrak data}: grouped per quarter (a year is too long)
+      \begin{marginfigure}[0cm]
+        \includegraphics[width=0.85\textwidth]{PTSFR-Amtrakagg}
+        \caption{Amtrak}
+        \label{fig:Amtrakagg}
+        \setfloatalignment{b}
+      \end{marginfigure}
+    \item \newthought{Baregg data}
+      \begin{marginfigure}
+        \includegraphics[width=1\textwidth]{PTSFR-Bareggagg}
+        \caption{Baregg tunnel}
+        \label{fig:Bareggagg}
+        \setfloatalignment{b}
+      \end{marginfigure}
+    \end{enumerate}
+\end{itemize}
 
 
 \printindex
