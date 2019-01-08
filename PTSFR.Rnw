@@ -62,8 +62,10 @@
 library(tidyverse)
 library(lubridate)
 library(broom)
+library(funModeling)
 library(gridExtra)
 library(writexl)
+library(plotly)
 @
 
 % Setting the ggplot theme:
@@ -123,10 +125,10 @@ Everywhere
 
 \begin{itemize}
 	\item purpose of generating forecasts? \emph{time series analysis}\index{time series!analysis} is about \emph{descriptive modeling}\index{modeling!descriptive} the time series. \emph{time series forecasting}\index{time series!forecasting} is about \emph{predicting}\index{modeling!predictive} future values. Descriptive methods can use data ''from the future" (e.g. in moving averaging), while predictive methods can only rely on present data and past data.
-	\item type of forecasts that are needed? \emph{Forecast horizon}\index{forecast horizon}: how far in the future should we forecast? A forecast horizon $k$ is the number of time steps ahead we have to forecast $(F_{t+k})$. The value of $k$ depends on the purpose of the forecast. Here the element of data availability is important: if the most recent data are two months old, a forecast for next month requires a forecast horizon $k=3$.
+	\item type of forecasts that are needed? \emph{Forecast horizon}\index{forecast!horizon}: how far in the future should we forecast? A forecast horizon $k$ is the number of time steps ahead we have to forecast $(F_{t+k})$. The value of $k$ depends on the purpose of the forecast. Here the element of data availability is important: if the most recent data are two months old, a forecast for next month requires a forecast horizon $k=3$.
 	\item how will the forecasts be used? Do we want a numerical result or a binary one (''yes/no"). Who is the client: technocrats with a deep understanding of forecasting, or generalists who simply want to use the forecast?
 	\item costs associated with forecast errors?
-	\item data available in the future? \emph{Forecast updating}\index{forecast updating}: forecasting for one point in time, or ongoing. If it is ongoing our forecasting method should be able to take new information into account. A forecast for december 2019 made in januari 2019 can be refreshed when data for februari, march ... 2019 become available.
+	\item data available in the future? \emph{Forecast updating}\index{forecast!updating}: forecasting for one point in time, or ongoing. If it is ongoing our forecasting method should be able to take new information into account. A forecast for december 2019 made in januari 2019 can be refreshed when data for februari, march ... 2019 become available.
 	\item the level of automation. The level of automation increases when many time series have to be forecast, when it is an ongoing process, when extra data become available during the forecasting period and when less forecasting expertise is available.
 \end{itemize}
 
@@ -339,7 +341,7 @@ write_xlsx(data.frame(t = construct$t,addcon = construct$addcon), "Data/addcon.x
 \setfloatalignment{b}
 \end{figure}
 
-This time series is stored in the data frame \textit{construct} in column \textit{addcon}. It is also stored as an Excel-spreadsheet (\textif{addcon.xlsx}).
+This time series is stored in the data frame \textit{construct} in column \textit{addcon}. It is also stored as an Excel-spreadsheet (\textit{addcon.xlsx}).
 
 \subsection{Multiplicative constructed time series}
 
@@ -431,10 +433,11 @@ Amtrak.data <- read.csv("Data/Amtrak data.csv", sep=";", stringsAsFactors = FALS
 # transforming the ''Month" column into a proper date variable
 Amtrak.data %>%  mutate(day = myd(paste0(Month, "-01"))) -> Amtrak.data
 Amtrak.data$t <- c(1:nrow(Amtrak.data))
-ggplot(data=Amtrak.data) +
-  geom_line(aes(x=t, y=Ridership), size=1, color="red") +
-  labs(title="Amtrak Ridership data") +
-  JT.theme
+Amtrak.baseplot <- ggplot(data=Amtrak.data) +
+                          geom_line(aes(x=t, y=Ridership), size=1, color="red") +
+                          labs(title="Amtrak Ridership data") +
+                          JT.theme
+Amtrak.baseplot
 @
 
 \begin{marginfigure}
@@ -447,7 +450,8 @@ ggplot(data=Amtrak.data) +
 
 \newpage
 Other operations are:
-\subsection{Zooming in}
+\subsection{Zooming}\index{visualization!zooming}
+\label{subsec:zoomingin}
 \newthought{Example} 
 We use the time series of the number of vehicles in the Baregg Tunnel.
 
@@ -455,7 +459,7 @@ We use the time series of the number of vehicles in the Baregg Tunnel.
 Baregg.data <- read.csv("Data/BareggTunnelTraffic.csv", sep=",", stringsAsFactors = FALSE)
 Baregg.data$t <- c(1:nrow(Baregg.data))
 Baregg.data$day <- dmy(Baregg.data$day)
-p1 <- ggplot(data=Baregg.data) +
+Baregg.baseplot <- ggplot(data=Baregg.data) +
   geom_line(aes(x=day, y=number), size=1, color="red") +
   labs(title="Number of vehicles in Baregg Tunnel") +
   JT.theme
@@ -469,7 +473,7 @@ p3 <- ggplot(data=Baregg.data) +
   scale_x_date(limits = dmy(c("01-02-2004","08-02-2004")), breaks = dmy(c("01-02-2004", "02-02-2004", "03-02-2004", "04-02-2004", "05-02-2004", "06-02-2004", "07-02-2004", "08-02-2004")))  +
   labs(title="Number of vehicles in Baregg Tunnel\nzooming week of 1-Feb-2004") +
   JT.theme
-grid.arrange(p1, p2, p3, nrow=3)
+grid.arrange(Baregg.baseplot, p2, p3, nrow=3)
 @
 
 \begin{figure}
@@ -538,6 +542,14 @@ grid.arrange(p1, p2, p3, nrow=3)
 \end{figure}
 
 First we plot the whole range. Then we determine the range where we can see a few periods of a possible seasonal. Then we go in for some more detail (Figure~\ref{fig:combiconviz}). The top graph shows a seasonal pattern that starts around t=125 and ends at t=1000 after 8 periods. A first estimate for the seasonal component is that it has a period of (1000 - 125)/8=109,4 (again not bad given that it is N/9). The other, more detailed graphs, do not improve on this.
+
+\newthought{Using plotly}
+
+We can turn a \textit{ggplot} into a more flexible \textit{plotly}-object by using the \textbf{plotly}-package and the command \textit{ggplotly(p)} where p is the \textit{ggplot}-object. The full range combined constructed model gets a dynamic zoom window in this way. The result is not a pdf-file, so it cannot be loaded into the Sweave file. But it is a quick tool to do some zooming.
+
+<<echo=FALSE>>=
+ggplotly(p1)
+@
 
 \newthought{Time Series Objects in R and the parameter frequency}
 We can do the visualising perfectly with \textit{ggplot}, which means that az yet we don't need to force the data into a time series object\index{time series object}. Doing so requires you to select a value for the parameter ''frequency"\index{time series!frequency}. First of all: it is \textbf{NOT} a frequency, but a period! Not Hz but sec (or other time scale). While this parameter can be chosen reasonably in certain situations (e.f. the Amtrak data where values are recorded monthly and we can assume a seasonality of 1 year = 12 months), it is (at present) not so clear for the Belragg data or the constructed time series (addcon and combicon). Rob Hyndman\sidenote{\url{https://otexts.org/fpp2/}} gives a few examples:
@@ -624,6 +636,7 @@ It is often easier to see trends in the data when seasonality is suppressed. We 
     Amtrak.year <- as.data.frame(Amtrak.year)
     ggplot(data = Amtrak.year) +
       geom_line(aes(x=yrqt, y= mean, group=1), size=1, color="red") +
+      scale_y_continuous(limits= c(1000, 2500)) +
       theme(axis.text.x=element_text(angle=-45, hjust=0.001)) +
       labs(title="Quarterly average of riderschip") +
       JT.theme
@@ -636,6 +649,7 @@ It is often easier to see trends in the data when seasonality is suppressed. We 
     Baregg.month <- as.data.frame(Baregg.month)
     ggplot(data = Baregg.month) +
       geom_line(aes(x=yrmt, y= mean, group=1), size=1, color="red") +
+      scale_y_continuous(limits= c(0, 125000)) +
       theme(axis.text.x=element_text(angle=-45, hjust=0.001)) +
       labs(title="Monthly average of numbers in Baregg tunnel") +
       JT.theme
@@ -646,7 +660,7 @@ It is often easier to see trends in the data when seasonality is suppressed. We 
 	\begin{enumerate}
 	  \item \newthought{Amtrak data}: grouped per quarter (a year is too long)
       \begin{marginfigure}[0cm]
-        \includegraphics[width=0.85\textwidth]{PTSFR-Amtrakagg}
+        \includegraphics[width=1\textwidth]{PTSFR-Amtrakagg}
         \caption{Amtrak}
         \label{fig:Amtrakagg}
         \setfloatalignment{b}
@@ -661,6 +675,88 @@ It is often easier to see trends in the data when seasonality is suppressed. We 
     \end{enumerate}
 \end{itemize}
 
+Looking at these results, this seems an awkward way of finding the trend. A lot depends on the choice of the level of aggregation. This does not seem to improve on finding a first idea of the trend by using the inbuilt functions of Excel (of Numbers).
+
+\subsection{Interactive visualization}
+
+Specific software (e.g. Tableau) offer the possibility of visualizing\index{visualization} data dynamically so that you can do a number of the above mentioned techniques (zooming, trending, suppressing seasonality) quickly. As mentioned in \ref{subsec:zoomingin} zooming\index{visualization!zooming} can quickly be done on an existing \textit{ggplot}-object by using the \textbf{plotly}-library. It is not ''Tableau" but it's quick and free.
+
+The book offers more examples of visualization packages that allow you to zoom and filter across multiple data sets. Could be done with \textit{ggplot} and \textit{plotly} but with a great deal of effort!
+
+\section{Data pre-processing}\index{data!quality}
+
+\subsection{Exploratory Data Analysis}\index{EDA = Exploratory Data Analysis}
+See EDA.pdf
+
+Using the libraries \textit{broom} and \textit{funModelling} we can get a quick overview of the characteristics of the data frame:
+
+\newthought{Number of rows, variables and head of the first row}
+<<>>=
+glimpse(Amtrak.data)
+@
+
+\newpage
+\newthought{Metrics on data types, zeros, infinite numbers, missing values}\index{data!zeros}\index{data!missing values}\index{data!infinite numbers}
+<<>>=
+df_status(Amtrak.data)
+@
+
+\newthought{Distribution of the numerical value}
+<<label=dist, fig=TRUE, include=FALSE, echo=FALSE>>=
+plot_num(data=Amtrak.data)
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-dist}
+\caption{distribution of numerical data}
+\label{fig:dist}
+\setfloatalignment{b}
+\end{figure}
+
+\newthought{Checking for extreme values}\index{data!extreme values}
+<<>>=
+describe(Amtrak.data$Ridership)
+@
+
+\subsection{Missing values}\index{data!missing values}
+
+Missing values should turn up in the Exploratory Data Analysis and/or the visualization process. But they can be subtle. So we can detect them by finding the number of values there should be between the start and the end of the time series, and the number of values in the data:
+
+<<echo=TRUE>>=
+(interval(ymd(Amtrak.data$day[1]), ymd(Amtrak.data$day[nrow(Amtrak.data)])) %/% months(1) + 1) -
+      nrow(Amtrak.data)
+(interval(ymd(Baregg.data$day[1]),ymd(Baregg.data$day[nrow(Baregg.data)])) %/% days(1) + 1) -
+      nrow(Baregg.data)
+@
+
+To check: let's construct a faulty time series: two weeks of data with the weekends missing:
+<<>>=
+faulty <- data.frame(day = seq(ymd('2012-04-09'), ymd('2012-04-22'), by = '1 day'),
+                     y = seq(0:13)) 
+faulty$weekday <- wday(faulty$day, label=TRUE)
+faulty %>% dplyr::filter(as.character(weekday) != "Sun" &
+                         as.character(weekday) !="Sat") -> faulty
+(interval(ymd(faulty$day[1]),ymd(faulty$day[nrow(faulty)])) %/% days(1) + 1) - nrow(faulty)
+@
+
+Many time-series forecasting methods (such as ARIMA) cannot stand time-series with ''holes". Usually they are filled by \emph{imputation}\index{data!imputing missing values}
+
+Other methods (e.g. linear or logistic regression models) are not influenced when there are missing values.
+
+\subsection{Unequally spaced series}
+
+Spacing can be checked with the \textit{diff}-command:
+
+<<>>=
+diff(Amtrak.data$day)
+diff(Baregg.data$day)
+@
+
+\subsection{Extreme values}\index{data!extreme values}
+Extreme values can be discarded if they are unique (e.g. the result of an earthquake) and unlikely to repeat itself in the forecasting period. When in doubt: do two forecasts: one with and one without the extreme values.
+
+\subsection{Choice of time span}\index{forecast!horizon}
+How far back in the past should we consider data to be relevant? Older data may have resulted from a different context and environment which are not relevant to the situation in the forecasting period. The rule is the \emph{we extend our time series backwards for only those periods where the environment is assumed to be similar to the forecast horizon}.
 
 \printindex
 
