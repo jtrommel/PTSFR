@@ -758,6 +758,30 @@ Extreme values can be discarded if they are unique (e.g. the result of an earthq
 \subsection{Choice of time span}\index{forecast!horizon}
 How far back in the past should we consider data to be relevant? Older data may have resulted from a different context and environment which are not relevant to the situation in the forecasting period. The rule is the \emph{we extend our time series backwards for only those periods where the environment is assumed to be similar to the forecast horizon}.
 
+\chapter{Performance evaluation}
+
+Using the same data to develop the forecasting model \textbf{and} to assess iets performance, we introduce \emph{bias}\index{bias}\index{performance!bias}. Our model will be fine tuned to this particular set of data. It will not only be adjusted to the systematic component of the data, but also to the noise. The metaphor of the tailor making a perfectly fitting suit for a customer is apt. The suit will not be useful when the customer gains or loses some weight. From this observation follows the idea of partitioning of the data set.
+
+\section{Data partitioning}\index{partition}\index{data!partition}
+
+\emph{Partitioning} is the splitting of the data set into two parts: forecasting models are built using the data in part 1. Using these models we make a forecast of part 2. The differences between the forecasted values and the true values of part 2 are used to measure the performance of different forecasting models.
+
+\subsection{Partitioning of cross-sectional data}
+
+Cross-sectional data\index{data!cross sectional} have values for different variables at one specific moment in time. Then we create three partitions: the \emph{training set}\index{training set}, a \emph{validation set}\index{validation set} and a \emph{test set}\index{test set}. The partitioning is done \emph{at random}: we (the computer) picks at random which data elements go into each set.
+
+\subsection{Temporal partitioning}
+When our goal is forecasting, we want to predict the future. Therefore there is no \emph{test set} available. Partitioning is \emph{random} because this would create \emph{missing values}\index{missing values} into both the \emph{training set} and the \emph{validation set}, and it would miss the logical temporal sequence of past and future. Visualization of actual an predicted series for both sets is interesting, because it could indicate overfitting when the predicted and actual series are close to each other in the training period, but not in the validation period.
+
+\subsection{Joining partitions for forecasting}
+Before attempting to predict the, unknown, future values we will use our forecasting methods on the whole time series: the joined training and validation sets. This has the following advantages:
+\begin{itemize}
+	\item the validation period is the most recent and therefore more in tune with the future we wish to forecast
+	\item more data can lead to better estimation of model parameters
+	\item using only the training set will require that the forecasting must be done further in the future
+\end{itemize}
+
+
 \printindex
 
 \newpage
