@@ -63,6 +63,7 @@ library(tidyverse)
 library(lubridate)
 library(broom)
 library(funModeling)
+library(forecast)
 library(gridExtra)
 library(writexl)
 library(plotly)
@@ -780,6 +781,109 @@ Before attempting to predict the, unknown, future values we will use our forecas
 	\item more data can lead to better estimation of model parameters
 	\item using only the training set will require that the forecasting must be done further in the future
 \end{itemize}
+
+\subsection{Choosing the validation period}
+The length of the validation period is determined by the forecast horizon\index{forecast!horizon}. A shorter validation period does not give good information on the quality of our forecasting model at the end of the forecasting period. A longer validation period reduces the amount of data in the training set, and specifically the most recent data.
+
+If we were to make a forecast on the Amtrak data for the next 3 years (=36 months) we would set the validation period nValid to 36. Consequently the training set (nTrain) would be limited to the whole range of Amtrak.data (=nrow(Amtrak.data)) minus nValid. We will be using the times series object that was created before. We include a polynomial regression for the trend. This gives us the following code (you need the library \textbf{forecast}):
+
+<<label=Validationperiod, fig=TRUE, include=FALSE, echo=TRUE>>=
+nValid <- 36
+nTrain <- length(ridership.ts) - nValid
+train.ts <- window(ridership.ts, 
+                   start = c(1991, 1), 
+                   end = c(1991, nTrain))
+valid.ts <- window(ridership.ts, 
+                   start = c(1991, nTrain + 1), 
+                   end = c(1991, nTrain + nValid))
+ridership.lm <- tslm(ridership.ts ~ trend + I(trend^2))
+ridership.lm.pred <- forecast(ridership.lm, h = nValid, level = 0)
+plot(ridership.lm.pred, 
+     ylim = c(1300, 2600), 
+     ylab = "Ridership", 
+     xlab = "Time", 
+     bty = "l",
+     xaxt = "n",
+     xlim = c(1991, 2006.25),
+     main = "",
+     flty = 2)
+axis(1, at = seq(1991, 2006, 1), labels = format(seq(1991, 2006,1)))
+lines(ridership.lm$fitted, lwd = 2)
+lines(valid.ts)
+abline(v = 1991 , col="blue")
+abline(v = 1991 + (nTrain + 1)/12 , col="blue")
+abline(v = 1991 + (nTrain + nValid)/12, col="blue")
+text(x = 1996, y = 2400, labels="Training")
+arrows(x0 = 1991, y0 = 2300, 
+       x1 = 1991 + nTrain/12, y1 = 2300, 
+       code = 3, length = 0.1)
+text(x = 2002.6, y = 2400, labels="Validation")
+arrows(x0 = 1991 + (nTrain + 1)/12, y0 = 2300, 
+       x1 = 1991 + (nTrain + nValid)/12, y1 = 2300, 
+       code = 3, length = 0.1)
+text(x = 2005.5, y = 2400, labels="Future")
+arrows(x0 = 1991 + (nTrain + nValid + 1)/12, y0 = 2300, 
+       x1 = 1991 + (nTrain + nValid + 36)/12, y1 = 2300, 
+       code = 2, length = 0.1)
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-Validationperiod}
+\caption{Amtrak Riderschip validation period}
+\label{fig:Validationperiod}
+\setfloatalignment{b}
+\end{figure}
+
+\section{Naive forecasts}\index{forecast!naive}
+
+\emph{Naive forecasts} have the merit that they are simple, easy to understand and, in some cases, are sufficient to achieve the forecasting goal. If not, their performance can by used as a benchmark for more complicated model.
+
+\begin{itemize}
+	\item For a time series that does not show substantial seasonality, or if the seasonality has a period that is much greater than the forecast horizon, the \emph{naive} forecast is \emph{the most recent value} of the time series. The k-step-ahead forecast is:
+    \begin{equation}
+    	F_{t_{latest}+k} = y_{t_{latest}} = constant
+    \end{equation}
+        Graphically it means that the forecasted values are on a horizontal line for the whole forecasting horizon.
+  \item For a time series with seasonality with known period T that extends into the forecasting horizon the \emph{naive} forecast is \emph{the value - 1 period} of the time series. The k-step-ahead forecast is:
+    \begin{equation}
+    	F_{t_{latest} + 1} = y_{t_{latest} + 1 - T}
+    \end{equation}
+        Graphically it means that the forecasted values are a repeat of the last known period
+\end{itemize}
+
+It is the equivalent of the principle of \emph{persistency} that is used as a naive forecast in weather forecasting.
+
+\section{Measuring predictive accuray}\index{accuracy}\index{forecast!accuracy}
+
+\emph{Predictive accuracy} is not the same as \emph{Goodness of Fit}. The latter measure how well the model fits the data. In forecasting however we are interested in the question of how wel the model, based on the \emph{training set}, predicts the values in the \emph{validation set}.
+
+\subsection{Metrics for prediction accurary}\index{forecast!accuracy metrics}
+
+The \emph{forecast error}\index{forecast!error} or \emph{residual}\index{residual} is the difference between the actual value $y_{t}$ and the forecast value $F_{t}$:
+\begin{equation}
+	e_{t}=y_{t} - F_{t}
+\end{equation}
+
+The validation set has time indexes $t_{start + n_{Train}} + i$, with $i=1 \ldots n_{Valid}$, than we can define the following metrics:
+\begin{itemize}
+	\item Mean Absolute Error (or Deviation) (MAE of MAD)
+	  \begin{equation}
+	    MAE = \frac{1}{n_{Valid}}\sum_{1}^{n_{Valid}} |e_{i}|
+    \end{equation}
+  \item Average Error: idem but without the absolute values. Gives an idea of under- or overprediction
+     \begin{equation}
+	    MAE = \frac{1}{n_{Valid}}\sum_{1}^{n_{Valid}} e_{i}
+    \end{equation}
+  \item Mean Absolute Percentage Error: relative absolute error. Used when comparing performance across time series with different scales
+     \begin{equation}
+	    MAPE = \frac{1}{n_{Valid}}\sum_{1}^{n_{Valid}}| \frac{e_{i}}{y_{i}}*100 | 
+    \end{equation}
+\end{itemize}
+
+
+
+
+
 
 
 \printindex
