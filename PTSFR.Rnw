@@ -796,7 +796,7 @@ train.ts <- window(ridership.ts,
 valid.ts <- window(ridership.ts, 
                    start = c(1991, nTrain + 1), 
                    end = c(1991, nTrain + nValid))
-ridership.lm <- tslm(ridership.ts ~ trend + I(trend^2))
+ridership.lm <- tslm(train.ts ~ trend + I(trend^2))
 ridership.lm.pred <- forecast(ridership.lm, h = nValid, level = 0)
 plot(ridership.lm.pred, 
      ylim = c(1300, 2600), 
@@ -878,12 +878,39 @@ The validation set has time indexes $t_{start + n_{Train}} + i$, with $i=1 \ldot
      \begin{equation}
 	    MAPE = \frac{1}{n_{Valid}}\sum_{1}^{n_{Valid}}| \frac{e_{i}}{y_{i}}*100 | 
     \end{equation}
+  \item Root Mean Square Error
+    \begin{equation}
+	    RMSE = \sqrt{ \frac{1}{n_{Valid}}\sum_{1}^{n_{Valid}} e_{i}^{2} }
+    \end{equation}
 \end{itemize}
 
+Applying these principles and definitons to the Amtrak.data time series we get:
 
+<<>>=
+forecast.error <- valid.ts - ridership.lm.pred$mean
+MAE <- (1/nValid)*sum(abs(forecast.error))
+MAE
+AvEr <- (1/nValid)*sum(forecast.error)
+AvEr
+MAPE <- (1/nValid)*sum(abs(forecast.error*100/valid.ts))
+MAPE
+RMSE <- sqrt((1/nValid)*sum(forecast.error^2))
+RMSE
+@
 
+or we immediately use the \textit{accuracy}-function:
+<<>>=
+accuracy(ridership.lm.pred$mean, valid.ts)
+@
 
+\subsection{Zero counts}
+Calculating MAPE is impossible when $y_{i}=0$. When you cannot reasonably exclude these values, another metric is used: the MASE = Mean Absolute Scaled Error. It devides the model MAE by the MAE of the naive forecast \emph{on the training set}:
 
+\begin{equation}
+	MASE = \frac{validation MAE}{training MAE of naive forecast} = \frac{\frac{1}{n_{Valid}}\sum_{1}^{n_{Valid}} |e_{i}|}{\frac{1}{n_{Train}-1}\sum_{1}^{n_{Train}} |y_{t-1} - y_{t}|}
+\end{equation}
+
+Values of MASE lower higher than 1 indicate a poorer performance than the naive forecast.
 
 
 \printindex
