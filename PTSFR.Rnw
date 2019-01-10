@@ -787,7 +787,7 @@ The length of the validation period is determined by the forecast horizon\index{
 
 If we were to make a forecast on the Amtrak data for the next 3 years (=36 months) we would set the validation period nValid to 36. Consequently the training set (nTrain) would be limited to the whole range of Amtrak.data (=nrow(Amtrak.data)) minus nValid. We will be using the times series object that was created before. We include a polynomial regression for the trend. This gives us the following code (you need the library \textbf{forecast}):
 
-<<label=Validationperiod, fig=TRUE, include=FALSE, echo=TRUE>>=
+<<label=Validationperiod, fig=TRUE, include=FALSE, echo=FALSE>>=
 nValid <- 36
 nTrain <- length(ridership.ts) - nValid
 train.ts <- window(ridership.ts, 
@@ -806,19 +806,19 @@ plot(ridership.lm.pred,
      xaxt = "n",
      xlim = c(1991, 2006.25),
      main = "",
-     flty = 2)
+     lty = 2)
 axis(1, at = seq(1991, 2006, 1), labels = format(seq(1991, 2006,1)))
 lines(ridership.lm$fitted, lwd = 2)
 lines(valid.ts)
 abline(v = 1991 , col="blue")
-abline(v = 1991 + (nTrain + 1)/12 , col="blue")
+abline(v = 1991 + (nTrain)/12 , col="blue")
 abline(v = 1991 + (nTrain + nValid)/12, col="blue")
 text(x = 1996, y = 2400, labels="Training")
 arrows(x0 = 1991, y0 = 2300, 
        x1 = 1991 + nTrain/12, y1 = 2300, 
        code = 3, length = 0.1)
 text(x = 2002.6, y = 2400, labels="Validation")
-arrows(x0 = 1991 + (nTrain + 1)/12, y0 = 2300, 
+arrows(x0 = 1991 + (nTrain)/12, y0 = 2300, 
        x1 = 1991 + (nTrain + nValid)/12, y1 = 2300, 
        code = 3, length = 0.1)
 text(x = 2005.5, y = 2400, labels="Future")
@@ -859,7 +859,7 @@ It is the equivalent of the principle of \emph{persistency} that is used as a na
 
 \subsection{Metrics for prediction accurary}\index{forecast!accuracy metrics}
 
-The \emph{forecast error}\index{forecast!error} or \emph{residual}\index{residual} is the difference between the actual value $y_{t}$ and the forecast value $F_{t}$:
+The \emph{forecast error}\index{forecast!error}\index{forecast!accuracy} or \emph{residual}\index{residual} is the difference between the actual value $y_{t}$ and the forecast value $F_{t}$:
 \begin{equation}
 	e_{t}=y_{t} - F_{t}
 \end{equation}
@@ -898,7 +898,7 @@ RMSE <- sqrt((1/nValid)*sum(forecast.error^2))
 RMSE
 @
 
-or we immediately use the \textit{accuracy}-function:
+or we immediately use the \textit{accuracy}-function\index{accuracy}\index{forecast!accuracy}:
 <<>>=
 accuracy(ridership.lm.pred$mean, valid.ts)
 @
@@ -911,6 +911,138 @@ Calculating MAPE is impossible when $y_{i}=0$. When you cannot reasonably exclud
 \end{equation}
 
 Values of MASE lower higher than 1 indicate a poorer performance than the naive forecast.
+
+\subsection{Forecast accuracy vs. profitability}\index{forecast!accuracy}\index{forecast!cost}
+Some metrics (e.g. MAPE and RMSE) inflate the effect of large errors. But the effects, or costs, of the error should also come into consideration. Sometimes the cost of a forecast error is big for positive errors, but not for negative ones. Sometimes the cost is proportional to the error, but the relation can be non-linear: it can be that the cost is the same once a certain error treshold is crossed.A measure of profitability could be very usefull when choosing the forecast method.
+
+\section{Evaluating forecast uncertainty}
+
+\subsection{Distribution of forecast errors}
+
+We should go beyond the clustered metrics like MAPE or RMSE. It is interesting to examine the distribution of forecasting errors: are there extremely low or high errors. For example: we have constructed a second degree polynomial trend model (ridership.lm) based on the training set. Using this model we can predict the ridership data both for the training set and for the validation set (ridership.lm.pred).
+
+<<label=Residuals, fig=TRUE, include=FALSE, echo=FALSE>>=
+par(mfrow = c(2,1))
+plot(ridership.lm.pred$residuals, 
+     ylim = c(-400, 400), 
+     ylab = "Residuals", 
+     xlab = "Time", 
+     bty = "l",
+     xaxt = "n",
+     xlim = c(1991, 2006.25),
+     main = "",
+     lty = 1)
+axis(1, at = seq(1991, 2006, 1), labels = format(seq(1991, 2006,1)))
+lines(valid.ts - ridership.lm.pred$mean)
+abline(v = 1991 , col="blue")
+abline(v = 1991 + (nTrain)/12 , col="blue")
+abline(v = 1991 + (nTrain + nValid)/12, col="blue")
+text(x = 1996, y = 350, labels="Training")
+arrows(x0 = 1991, y0 = 300, 
+       x1 = 1991 + nTrain/12, y1 = 300, 
+       code = 3, length = 0.1)
+text(x = 2002.6, y = 350, labels="Validation")
+arrows(x0 = 1991 + (nTrain)/12, y0 = 300, 
+       x1 = 1991 + (nTrain + nValid)/12, y1 = 300, 
+       code = 3, length = 0.1)
+text(x = 2005.5, y = 350, labels="Future")
+arrows(x0 = 1991 + (nTrain + nValid + 1)/12, y0 = 300, 
+       x1 = 1991 + (nTrain + nValid + 36)/12, y1 = 300, 
+       code = 2, length = 0.1)
+hist(ridership.lm.pred$residuals, 
+     ylab = "Frequency", 
+     xlab = "Residuals", 
+     bty = "l", 
+     main = "")
+par(mfrow=c(1,1))
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-Residuals}
+\caption{Amtrak Riderschip Residuals}
+\label{fig:Residuals}
+\setfloatalignment{b}
+\end{figure}
+
+\subsection{Prediction intervals}
+A \emph{prediction intervel}\index{prediction interval} gives a confidence interval\index{confidence interval} of the forecast. If the forecast error is normally distributed we can use standard techniques to calculate the confidence intervals. For forecast models where the error does not have a normal distribution (e.g. the Amtrak second order polynomial model with residuals given in Figure\ref{fig:Residuals}) we can use the 5th and 95th quantile from the residuals to construct a confidence interval.
+
+\subsection{Prediction cones}
+Certain forecast models will have confidence intervals that become larger when our forecasts are made for points more and more into the future.
+
+\section{Advanced Data Partitioning: roll-forward validation}\index{roll-forward validation}
+When we partition the time series into one, fixed, training set and one, fixed, validation set then our forecasting method will give us only one prediction trajectory into the future.
+
+When using \emph{roll-forward validation} we have a number of partitions where we start from one training/validation combination, and make new training/validation sets by extending the training set with one period, and consequently reduce the validation set with the same period. For example: with the Amtrak time series we started with a validation set that had 36 months. With \emph{roll-forward validation} we create 36 partitionings where the validation set has 36, 35, 34 ... 1 months of data, and the training set grows each time with one month. When we keep the forecast horizon equal to the length of the validation set, we will get forecasts for 36 months from the first partition, 35 months from the second, ending with 1 month forecast from the last partition. This means that in the end we will have 36 forecasts for month 1 into the future, 35 forecasts for mont 2 into the future and 1 forecast for month 36 into the future. 
+
+For example: if we use a very simple forecast model (naive, only trend), then for the fixed partition our model for the next 36 months is a constant equal to the last value of $y_{i}$ in the training set.
+
+<<>>=
+forecast.fixed <- rep(last(train.ts), nValid)
+forecast.fixed.ts <- ts(forecast.fixed, 
+                        start = c(2001,4), 
+                        end = c(2004, 3), 
+                        freq = 12)
+@
+
+In a \emph{roll-forward validation} we 
+
+\begin{itemize}
+	\item start with a 36 period validation set, which gives 36 forecasts for the future equal to the last value in the training set
+	\item continue with a 35 period validation set, resulting in 35 forecast equal to the last value of the training set \textbf{+ 1}. This is the first value in the fixed validation set
+	\item a 34 period validation set, with 34 forecasts equal to the second value in the fixed validation set
+	\item ...
+	\item a 1 period validation set, with 1 forecast equal to the last value \textbf{but one} in the fixed validation set
+\end{itemize}
+
+The forecasts are thus given by:
+<<>>=
+forecast.roll.fwd <- append(last(train.ts), valid.ts[1:(length(valid.ts)-1)])
+forecast.roll.fwd.ts <- ts(forecast.roll.fwd, 
+                           start = c(2001,4), 
+                           end = c(2004, 3), 
+                           freq = 12)
+@
+
+<<label=rollforward, fig=TRUE, include=FALSE, echo=FALSE>>=
+plot(ridership.lm.pred, 
+     ylim = c(1300, 2600), 
+     ylab = "Ridership", 
+     xlab = "Time", 
+     bty = "l",
+     xaxt = "n",
+     xlim = c(1991, 2006.25),
+     main = "",
+     lty = 1)
+axis(1, at = seq(1991, 2006, 1), labels = format(seq(1991, 2006,1)))
+lines(ridership.lm$fitted, lwd = 2)
+lines(valid.ts, lty = 1)
+lines(forecast.fixed.ts, lty = 3, col="red")
+lines(forecast.roll.fwd.ts, lty = 2, col="red")
+abline(v = 1991 , col="blue")
+abline(v = 1991 + (nTrain)/12 , col="blue")
+abline(v = 1991 + (nTrain + nValid)/12, col="blue")
+text(x = 1996, y = 2400, labels="Training")
+arrows(x0 = 1991, y0 = 2300, 
+       x1 = 1991 + nTrain/12, y1 = 2300, 
+       code = 3, length = 0.1)
+text(x = 2002.6, y = 2400, labels="Validation")
+arrows(x0 = 1991 + (nTrain)/12, y0 = 2300, 
+       x1 = 1991 + (nTrain + nValid)/12, y1 = 2300, 
+       code = 3, length = 0.1)
+text(x = 2005.5, y = 2400, labels="Future")
+arrows(x0 = 1991 + (nTrain + nValid + 1)/12, y0 = 2300, 
+       x1 = 1991 + (nTrain + nValid + 36)/12, y1 = 2300, 
+       code = 2, length = 0.1)
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-Rollforward}
+\caption{Amtrak Riderschip roll-forward validation}
+\label{fig:Rollforward}
+\setfloatalignment{b}
+\end{figure}
+
 
 
 \printindex
