@@ -1104,7 +1104,9 @@ mean(abs(percent.error.snaive))
 
 \section{Model-based vs. Data-driven methods}\index{forecast!model-based methods}\index{forecast!data-driven methods}\index{model-based methods}\index{data-driven methods}\index{methods!model-based}\index{methods!data-driven}
 
+\emph{Model-based methods} use statistical, mathematical or other scientific models to approximate a time series. E.g. based on some prior knowledge of the subject we can reasonably assume a linear relation in time: $y(t)=b_{0} + b_{1}t$. The training data and a statistical method (linear regression) are used to determine the parameters $b_{0}$ and $b_{1}$ and the confidence interval on the predicted (forecasted) values. Model-based methods are very usefull when the data set is small: we do not need a lot of data points when we ''know" the type of relationship. These methods are better when the pattern is \emph{global}.
 
+\emph{Data-driven methods} find a pattern within the data, without presuming the know the relation of the data with time. A typical example is finding the trend using a \emph{moving average} or other smoothing technique. Naive methods are also only based on the data. Data-driven methods usually need more data points, but they have the advantage of being less user dependent and they adapt automatically when additional data become available. These methods adapt themselves to \emph{local} patterns.
 
 \printindex
 
