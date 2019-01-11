@@ -973,7 +973,7 @@ Certain forecast models will have confidence intervals that become larger when o
 \section{Advanced Data Partitioning: roll-forward validation}\index{roll-forward validation}
 When we partition the time series into one, fixed, training set and one, fixed, validation set then our forecasting method will give us only one prediction trajectory into the future.
 
-When using \emph{roll-forward validation} we have a number of partitions where we start from one training/validation combination, and make new training/validation sets by extending the training set with one period, and consequently reduce the validation set with the same period. For example: with the Amtrak time series we started with a validation set that had 36 months. With \emph{roll-forward validation} we create 36 partitionings where the validation set has 36, 35, 34 ... 1 months of data, and the training set grows each time with one month. When we keep the forecast horizon equal to the length of the validation set, we will get forecasts for 36 months from the first partition, 35 months from the second, ending with 1 month forecast from the last partition. This means that in the end we will have 36 forecasts for month 1 into the future, 35 forecasts for mont 2 into the future and 1 forecast for month 36 into the future. 
+When using \emph{roll-forward validation} we have a number of partitions where we start from one training/validation combination, and make new training/validation sets by extending the training set with one period, and consequently reduce the validation set with the same period. For example: with the Amtrak time series we started with a validation set that had 36 months. With \emph{roll-forward validation} we create 36 partitionings where the validation set has 36, 35, 34 ... 1 months of data, and the training set grows each time with one month. When we keep the forecast horizon equal to the length of the validation set, we will get forecasts for 36 months from the first partition, 35 months from the second, ending with 1 month forecast from the last partition. This means that in the end we will have 36 forecasts for month 1 into the future, 35 forecasts for mont 2 into the future and 1 forecast for month 36 into the future. Roll-forward partitioning is also a good choice when our time series is dynamic and we get new information on a steady basis. Our time series grows in time, and we can enlarge the training set and reduce the validation set if the forecast date(s) remain the same.
 
 For example: if we use a very simple forecast model (naive, only trend), then for the fixed partition our model for the next 36 months is a constant equal to the last value of $y_{i}$ in the training set.
 
@@ -1042,6 +1042,67 @@ arrows(x0 = 1991 + (nTrain + nValid + 1)/12, y0 = 2300,
 \label{fig:Rollforward}
 \setfloatalignment{b}
 \end{figure}
+
+However, this is not a good example! Of course our forecast in the validation period is better because we use the actual data from that period! We could have made it a perfect fit by choosing the actual last data point instead of the data point minus 1. A better example would be to determine the second degree polynomial model based on the dynamic training set and calculate the forecasting metrics using the dynamic validation set.
+
+\section{Example: comparing two models}
+
+Using the Amtrak ridership data we compare two forecast methods: naive and seasonal naive. For both we use fixed partitioning and roll-forward partitioning. \textsf{R} packages like \textit{forecast} have functions \textit{naive} and \textit{snaive} that generate the forecast models.
+
+\subsection{Fixed partitioning}
+
+<<>>=
+fixed.nValid <- 36
+fixed.nTrain <- length(ridership.ts) - fixed.nValid
+train.ts <- window(ridership.ts, 
+                   start = c(1991, 1),
+                   end = c(1991, fixed.nTrain))
+valid.ts <- window(ridership.ts, 
+                   start = c(1991, fixed.nTrain + 1), 
+                   end = c(1991, fixed.nTrain + fixed.nValid))
+naive.pred <- naive(train.ts, h = fixed.nValid)
+snaive.pred <- snaive(train.ts, h = fixed.nValid)
+accuracy(naive.pred, valid.ts)
+accuracy(snaive.pred, valid.ts)
+@
+
+\subsection{Roll-forward partitioning}
+
+<<>>=
+fixed.nValid <- 36
+fixed.nTrain <- length(ridership.ts) - fixed.nValid
+stepsAhead <- 1
+error.naive <- rep(0, fixed.nValid - stepsAhead + 1)
+percent.error.naive <- rep(0, fixed.nValid - stepsAhead + 1)
+error.snaive <- rep(0, fixed.nValid - stepsAhead + 1)
+percent.error.snaive <- rep(0, fixed.nValid - stepsAhead + 1)
+for  (j in fixed.nTrain:(fixed.nTrain + fixed.nValid - stepsAhead)) {
+  train.ts <- window(ridership.ts, 
+                    start = c(1991, 1),
+                    end = c(1991, j))
+  valid.ts <- window(ridership.ts, 
+                   start = c(1991, j + stepsAhead), 
+                   end = c(1991, fixed.nTrain + fixed.nValid))
+  naive.pred <- naive(train.ts, h = stepsAhead)
+  snaive.pred <- snaive(train.ts, h = stepsAhead)
+  error.naive[j - fixed.nTrain + 1] <- valid.ts - naive.pred$mean[stepsAhead]
+  percent.error.naive[j - fixed.nTrain + 1] <- error.naive[j - fixed.nTrain + 1]/valid.ts
+  error.snaive[j - fixed.nTrain + 1] <- valid.ts - snaive.pred$mean[stepsAhead]
+  percent.error.snaive[j - fixed.nTrain + 1] <- error.snaive[j - fixed.nTrain + 1]/valid.ts
+}
+print("naive")
+mean(abs(error.naive))
+sqrt(mean(error.naive^2))
+mean(abs(percent.error.naive))
+print("snaive")
+mean(abs(error.snaive))
+sqrt(mean(error.snaive^2))
+mean(abs(percent.error.snaive))
+@
+
+\chapter{Forecasting methods: overview}
+
+\section{Model-based vs. Data-driven methods}\index{forecast!model-based methods}\index{forecast!data-driven methods}\index{model-based methods}\index{data-driven methods}\index{methods!model-based}\index{methods!data-driven}
 
 
 
