@@ -67,7 +67,7 @@ library(forecast)
 library(gridExtra)
 library(writexl)
 library(plotly)
-library(tidyquant)
+library(ggfortify)
 @
 
 % Setting the ggplot theme:
@@ -1192,8 +1192,8 @@ grid.arrange(p1, p2, p3, nrow=1)
 @
 
 \begin{figure*}
-\includegraphics[width=1\textwidth]{PTSFR-centeredsmooth}
-\caption{}
+\includegraphics[width=0.85\textwidth]{PTSFR-centeredsmooth}
+\caption{Centered moving average}
 \label{fig:centeredsmooth}
 \setfloatalignment{b}
 \end{figure*}
@@ -1206,7 +1206,7 @@ When wanting to forecast we cannot use ''future" values, because they to not exi
 	F_{t+k} = (y_{t} + y_{t-1} + \ldots + y_{t-w+1})/w
 \end{equation}
 
-In the \textif{filter}-function we only have to set the parameter \emph{sides} equal to 1.
+In the \textit{filter}-function we only have to set the parameter \emph{sides} equal to 1.
 
 <<label=trailingsmooth, fig=TRUE, include=FALSE, echo=FALSE>>=
 w <- 12
@@ -1252,6 +1252,292 @@ grid.arrange(p1, p2, p3, nrow=1)
 \setfloatalignment{b}
 \end{figure*}
 
+The accuracy of a naive forecast of the Amtrak ridership data based on the smoothed data in the training set is given by
+<<>>=
+accuracy(naive(stats::filter(train.ts, fw, sides=1), h = nValid), valid.ts)
+@
+
+<<label=naivetrailingsmooth, fig=TRUE, include=FALSE, echo=FALSE>>=
+nValid <- 36
+nTrain <- length(ridership.ts) - nValid
+train.ts <- window(ridership.ts, 
+                   start = c(1991, 1), 
+                   end = c(1991, nTrain))
+valid.ts <- window(ridership.ts, 
+                   start = c(1991, nTrain + 1), 
+                   end = c(1991, nTrain + nValid))
+w <- 12
+fw <- rep(1/w, w)
+ridership.trailing <- stats::filter(train.ts, fw, sides=1)
+naive.pred.trailing <- naive(ridership.trailing, h = nValid)
+plot(train.ts, 
+     ylim = c(1300, 2200), 
+     ylab = "Ridership", 
+     xlab = "Time", 
+     bty = "l",
+     xaxt = "n",
+     xlim = c(1991, 2006.25),
+     main = "",
+     lty = 1)
+axis(1, at = seq(1991, 2006, 1), labels = format(seq(1991, 2006,1)))
+lines(ridership.trailing, col = "red", lty = 2, lwd = 2)
+lines(valid.ts, lty = 1)
+lines(naive.pred.trailing$mean, col = "red", lty = 2, lwd = 2)
+abline(v = 1991 , col="blue")
+abline(v = 1991 + (nTrain)/12 , col="blue")
+abline(v = 1991 + (nTrain + nValid)/12, col="blue")
+text(x = 1996, y = 2190, labels="Training")
+arrows(x0 = 1991, y0 = 2170, 
+       x1 = 1991 + nTrain/12, y1 = 2170, 
+       code = 3, length = 0.1)
+text(x = 2002.6, y = 2190, labels="Validation")
+arrows(x0 = 1991 + (nTrain)/12, y0 = 2170, 
+       x1 = 1991 + (nTrain + nValid)/12, y1 = 2170, 
+       code = 3, length = 0.1)
+text(x = 2005.5, y = 2190, labels="Future")
+arrows(x0 = 1991 + (nTrain + nValid + 1)/12, y0 = 2170, 
+       x1 = 1991 + (nTrain + nValid + 36)/12, y1 = 2170, 
+       code = 2, length = 0.1)
+
+@
+
+\begin{figure}
+\includegraphics[width=1\textwidth]{PTSFR-naivetrailingsmooth}
+\caption{Amtrak Ridership with naive forecast based on trailing moving average}
+\label{fig:naivetrailingsmooth}
+\setfloatalignment{b}
+\end{figure}
+
+From Figure~\ref{fig:naivetrailingsmooth} we can see that this model does not predict the actual values very well in the validation period. The accuracy of this naive forecast of the Amtrak ridership data based on the smoothed data in the training set is given by
+<<>>=
+accuracy(naive(stats::filter(train.ts, fw, sides=1), h = nValid), valid.ts)
+@
+
+\subsection{Choosing window width w}
+
+The choice of the window width $w$ is a balancing act between \emph{under-smoothing}\index{smoothing!under-smoothing} and \emph{over-smoothing}\index{smoothing!over-smoothing}. Narrow windows will show local trends, broader windows will show the general trend. Domain knowledge should give some indication.
+
+\section{Differencing}
+
+Removing a trend and/or a seasonal pattern can be done by \emph{differencing}\index(differencing)\index{trend!removing of}\index{seasonality!removing of}. A \emph{lag-1} difference\index{lag}\index{differencing!lag} takes the difference between every two consecutive values in the series. In general, a \emph{lag-k} difference substracts the value from k time units back:
+\begin{equation}
+	lag_{k}(t) = y_{t} - y_{t-k}
+\end{equation}
+
+In R the \textit{diff}-function provides the differenced series.
+
+\subsection{Removing a trend}\index{trend:removing}
+
+A \emph{lag-1} difference can remove a trend. While the ridership time series (upper section in Figure~\ref{fig:Amtraklag1}) shows a U-shaped trend, no trend is visible in the lag1-series. For highter order trends, another round of lag-1 differencing might by necessary. In this case it seems that one lag-1 difference is sufficient to remove the trend. Look at the difference in the scale of the y-axis! The differenced time series should hover around the zero-line when the trend is removed. In the detrended time series the seasonal component should now be detectable.
+
+<<label=Amtraklag1, fig=TRUE, include=FALSE, echo=FALSE>>=
+p1 <- autoplot(ridership.ts) + 
+  labs(title="ridership.ts") +
+  xlab("time") +
+  ylab("ridership") +
+  JT.theme
+p2 <- autoplot(diff(ridership.ts, lag = 1)) + 
+  labs(title="ridership.lag1.ts") +
+  xlab("time") +
+  ylab("ridership.lag1.ts") +
+  JT.theme
+p3 <- autoplot(diff(diff(ridership.ts, lag = 1),1)) + 
+  labs(title="ridership.double.lag1.ts") +
+  xlab("time") +
+  ylab("ridership.double.lag1.ts") +
+  JT.theme
+grid.arrange(p1, p2, p3, nrow=3)
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-Amtraklag1}
+\caption{Amtrak Ridership original series and lag1-series}
+\label{fig:Amtraklag1}
+\setfloatalignment{b}
+\end{figure}
+
+Let's do this for the addcon- and combicon-series (Figure~\ref{fig:Constructlag1}). In both cases the trend is removed after a lag-1 differencing.
+
+<<label=Constructlag1, fig=TRUE, include=FALSE, echo=FALSE>>=
+addcon.ts <- ts(construct$addcon, start = 1)
+combicon.ts <- ts(construct$combicon, start = 1)
+p1 <- autoplot(addcon.ts) + 
+  labs(title="addcon.ts") +
+  xlab("time") +
+  ylab("addcon") +
+  JT.theme
+p2 <- autoplot(combicon.ts) + 
+  labs(title="combicon.ts") +
+  xlab("time") +
+  ylab("combicon") +
+  JT.theme
+p3 <- autoplot(diff(addcon.ts, lag = 1)) + 
+  labs(title="addcon.lag1.ts") +
+  xlab("time") +
+  ylab("addcon.lag1.ts") +
+  JT.theme
+p4 <- autoplot(diff(combicon.ts, lag = 1)) + 
+  labs(title="combicon.lag1.ts") +
+  xlab("time") +
+  ylab("combicon.lag1.ts") +
+  JT.theme
+grid.arrange(p1, p2, p3, p4,  nrow=2)
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-Constructlag1}
+\caption{addcon and combicon series: original and lag1}
+\label{fig:Constructlag1}
+\setfloatalignment{b}
+\end{figure}
+
+\subsection{Removing Seasonality}\index{seasonality!removing}\index{deseasonalizing}\index{seasonal adjustment}
+
+Do \emph{lag-T}-differencing, where $T$ is the period (or suspected period) of the season. For the Amtrak time series $T=12$. 
+
+<<label=Amtraklag12, fig=TRUE, include=FALSE, echo=FALSE>>=
+p1 <- autoplot(ridership.ts) + 
+  labs(title="ridership.ts") +
+  xlab("time") +
+  ylab("ridership") +
+  JT.theme
+p2 <- autoplot(diff(ridership.ts, lag = 12)) + 
+  labs(title="ridership.lag12.ts") +
+  xlab("time") +
+  ylab("ridership.lag12.ts") +
+  JT.theme
+grid.arrange(p1, p2, nrow=2)
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-Amtraklag12}
+\caption{Amtrak Ridership original series and lag12-series}
+\label{fig:Amtraklag12}
+\setfloatalignment{b}
+\end{figure}
+
+Figure~\ref{fig:Amtraklag12}: the monthly pattern has gone, but there is a hint of a 6 to 8 month pattern.
+
+For the addcon time series we have guessed before that it is around $T=1000/9=111$.
+
+<<label=Constructlag111, fig=TRUE, include=FALSE, echo=FALSE>>=
+p1 <- autoplot(addcon.ts) + 
+  labs(title="addcon.ts") +
+  xlab("time") +
+  ylab("addcon") +
+  JT.theme
+p2 <- autoplot(combicon.ts) + 
+  labs(title="combicon.ts") +
+  xlab("time") +
+  ylab("combicon") +
+  JT.theme
+p3 <- autoplot(diff(addcon.ts, lag = 111)) + 
+  labs(title="addcon.lag111.ts") +
+  xlab("time") +
+  ylab("addcon.lag111.ts") +
+  JT.theme
+p4 <- autoplot(diff(combicon.ts, lag = 111)) + 
+  labs(title="combicon.lag111.ts") +
+  xlab("time") +
+  ylab("combicon.lag111.ts") +
+  JT.theme
+grid.arrange(p1, p2, p3, p4,  nrow=2)
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-Constructlag111}
+\caption{addcon and combicon series: original and lag111}
+\label{fig:Constructlag111}
+\setfloatalignment{b}
+\end{figure}
+
+Figure~\ref{fig:Constructlag111}: the most obvious pattern has gone, but some trend has remained and there is a sign of a shorter periodicity which we can determine by doing a \textit{ggplotly} on graphs p3 and p4. Some measurements on these plots suggest a shorter period of about 27. Doing a second differencing with the shorter period give Figure~\ref{fig:Constructdoublelag}.
+
+<<label=Constructdoublelag, fig=TRUE, include=FALSE, echo=FALSE>>=
+p1 <- autoplot(addcon.ts) + 
+  labs(title="addcon.ts") +
+  xlab("time") +
+  ylab("addcon") +
+  JT.theme
+p2 <- autoplot(combicon.ts) + 
+  labs(title="combicon.ts") +
+  xlab("time") +
+  ylab("combicon") +
+  JT.theme
+p3 <- autoplot(diff(diff(addcon.ts, lag = 111),27)) + 
+  labs(title="addcon.lag111/27.ts") +
+  xlab("time") +
+  ylab("addcon.lag111/27.ts") +
+  JT.theme
+p4 <- autoplot(diff(diff(combicon.ts, lag = 111),27)) + 
+  labs(title="combicon.lag111/27.ts") +
+  xlab("time") +
+  ylab("combicon.lag111/27.ts") +
+  JT.theme
+grid.arrange(p1, p2, p3, p4,  nrow=2)
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-Constructdoublelag}
+\caption{addcon and combicon series: double lag: first T=111, then T=27}
+\label{fig:Constructdoublelag}
+\setfloatalignment{b}
+\end{figure}
+
+\subsection{Removing trend and seasonality}
+Do a double lag: first for seasonality (lag-T) and on the lagged time series a (lag-1).
+
+<<label=Amtrakdouble, fig=TRUE, include=FALSE, echo=FALSE>>=
+p1 <- autoplot(ridership.ts) + 
+  labs(title="ridership.ts") +
+  xlab("time") +
+  ylab("ridership") +
+  JT.theme
+p2 <- autoplot(diff(diff(ridership.ts, lag = 12),1)) + 
+  labs(title="ridership.lag12/1.ts") +
+  xlab("time") +
+  ylab("ridership.lag12/1.ts") +
+  JT.theme
+grid.arrange(p1, p2, nrow=2)
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-Amtrakdouble}
+\caption{Amtrak Ridership original series and lag12-lag1 series}
+\label{fig:Amtrakdouble}
+\setfloatalignment{b}
+\end{figure}
+
+<<label=Constructdouble, fig=TRUE, include=FALSE, echo=FALSE>>=
+p1 <- autoplot(addcon.ts) + 
+  labs(title="addcon.ts") +
+  xlab("time") +
+  ylab("addcon") +
+  JT.theme
+p2 <- autoplot(combicon.ts) + 
+  labs(title="combicon.ts") +
+  xlab("time") +
+  ylab("combicon") +
+  JT.theme
+p3 <- autoplot(diff(diff(addcon.ts, lag = 111),1)) + 
+  labs(title="addcon.lag111/1.ts") +
+  xlab("time") +
+  ylab("addcon.lag111/1.ts") +
+  JT.theme
+p4 <- autoplot(diff(diff(combicon.ts, lag = 111),1)) + 
+  labs(title="combicon.lag111/1.ts") +
+  xlab("time") +
+  ylab("combicon.lag111/1.ts") +
+  JT.theme
+grid.arrange(p1, p2, p3, p4,  nrow=2)
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-Constructdouble}
+\caption{addcon and combicon series: double lag: first T=111, then T=1}
+\label{fig:Constructdouble}
+\setfloatalignment{b}
+\end{figure}
 
 \printindex
 
