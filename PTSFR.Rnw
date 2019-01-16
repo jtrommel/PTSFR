@@ -89,7 +89,40 @@ JT.theme <- theme(panel.border = element_rect(fill = NA, colour = "gray10"),
 @
 
 % Functions
-
+<<echo=FALSE>>=
+TRJ.FFT <- function(signal.df) {
+    # This function calculates the FFT for a time series stored in a data frame with as first 
+    # column the time (or order of measurement) and as second column the vector of measurements.
+    # The result is a list. 
+    # The first element of the list is freqspec: the N frequencies plus for each frequency the 
+    # amplitude and phase.
+    # The second element of the list is resultaat: a data frame with those frequencies for which 
+    # the amplitude  is at least 33% of the maximum amplitude. 
+    # The data frame is sorted from highes amplitude to lowest. 
+    # This data frame can be seen as containing the most influential frequencies.
+    signal <- signal.df
+    names(signal) <- c("t","x")
+    N <- nrow(signal)
+    Ts <- as.numeric(signal$t[2]-signal$t[1])
+    Fs <- 1/Ts
+    # Calculation of the double sided en single sided spectrum
+    z <- fft(signal$x)
+    P2 <- Mod(z/N)
+    P1 <- P2[1:((N/2)+1)]
+    P1[2:(length(P1)-1)] <- 2*P1[2:(length(P1)-1)]
+    freq <- seq(0, (Fs/2)-(Fs/N), Fs/N)
+    freqspec <- data.frame(freq=freq,amp=P1[1:(N/2)],arg=Arg(z[1:(N/2)]))
+    # Finding the most important elements in the frequency spectrum
+    grens <- ifelse(freqspec$freq[freqspec$amp==max(freqspec$amp)]==0,max(freqspec$amp[2:nrow(freqspec)])/3,max(freqspec$amp)/3)
+    aantal <- length(freqspec$amp[freqspec$amp>grens])
+    resultaat <- data.frame(freq=rep(0,aantal), amp=rep(0,aantal), fasehoek=rep(0,aantal))
+    resultaat <- data.frame(freq=freqspec$freq[freqspec$amp>grens],
+                            amp=freqspec$amp[freqspec$amp>grens],
+                            fasehoek_pi=freqspec$arg[freqspec$amp>grens]/pi)
+    resultaat <- resultaat[order(-resultaat$amp),]
+    return(list("freqspec"=freqspec,"resultaat"=resultaat))
+}
+@
 
 
 \frontmatter
@@ -1330,6 +1363,43 @@ In R the \textit{diff}-function provides the differenced series.
 
 A \emph{lag-1} difference can remove a trend. While the ridership time series (upper section in Figure~\ref{fig:Amtraklag1}) shows a U-shaped trend, no trend is visible in the lag1-series. For highter order trends, another round of lag-1 differencing might by necessary. In this case it seems that one lag-1 difference is sufficient to remove the trend. Look at the difference in the scale of the y-axis! The differenced time series should hover around the zero-line when the trend is removed. In the detrended time series the seasonal component should now be detectable.
 
+\newthought{linear trend}\index{differencing!linear trend}
+
+If
+\begin{equation}
+	y_{t} = b_{0} + b_{1}t
+\end{equation}
+
+then
+\begin{equation}
+	lag1_{t} = y_{t} - y_{t-1}=\left( b_{0} + b_{1}t \right) - \left( b_{0} + b_{1}(t-1) \right) = b_{1}
+\end{equation}
+
+The linear trend is removed and we only have a level equal to $b_{1}$
+
+\newthought{quadratic trend}\index{differencing!quadratic trend}
+
+If
+\begin{equation}
+	y_{t} = b_{0} + b_{1}t + b_{2}t^{2}
+\end{equation}
+
+then
+\begin{equation}
+	lag1_{t} = y_{t} - y_{t-1}=\left( b_{0} + b_{1}t + b_{2}t^{2}\right) - \left( b_{0} + b_{1}(t-1) + b_{2}(t-1)^{2} \right) = (b_{1} - 1) + 2b_{2}t
+\end{equation}
+
+The quadratic trend is reduced to a linear trend. A second lag-1 differencing will reduce this to a constant.
+
+\newthought{polynomial trend}\index{differencing!polynomial trend}
+
+If
+\begin{equation}
+	y_{t} = p(t)
+\end{equation}
+
+A lag-1 differencing will reduce the degree of the polynomial trend by 1.
+
 <<label=Amtraklag1, fig=TRUE, include=FALSE, echo=FALSE>>=
 p1 <- autoplot(ridership.ts) + 
   labs(title="ridership.ts") +
@@ -1392,6 +1462,21 @@ grid.arrange(p1, p2, p3, p4,  nrow=2)
 \end{figure}
 
 \subsection{Removing Seasonality}\index{seasonality!removing}\index{deseasonalizing}\index{seasonal adjustment}
+
+\newthought{Seasonality as a sine-function}\index{differencing!seasonality!sine function}
+
+If
+\begin{equation}
+	y_{t} = \hat{a}sin(\frac{2\pi t}{T} + \alpha)
+\end{equation}
+
+then
+
+\begin{equation}
+	lag_T(t)=y_{t}-y_{t-T}=\hat{a}sin(\frac{2\pi t}{T} + \alpha)-\hat{a}sin(\frac{2\pi (t-T)}{T} + \alpha) =0
+\end{equation}
+
+A \emph{lag-T}-differencing will completely remove a true sine seasonality of the same period.
 
 Do \emph{lag-T}-differencing, where $T$ is the period (or suspected period) of the season. For the Amtrak time series $T=12$. 
 
@@ -1538,6 +1623,10 @@ grid.arrange(p1, p2, p3, p4,  nrow=2)
 \label{fig:Constructdouble}
 \setfloatalignment{b}
 \end{figure}
+
+\subsection{Effect of differencing on the error term}\index{differencing!effect on error}
+
+If the error (noise) can be considered as coming from a normal distribution with mean=0 and a variance =$\sigma^{2}$, then a differencing operation (of any lag) will lead to a new error distribution which will be normal, with mean=0 but with variance=$var=\sigma^{2} + \sigma^{2}=2\sigma^{2}$. Further lag-differencing operations will steadily increase the variance of the error term.
 
 \printindex
 
