@@ -1177,7 +1177,7 @@ Using \emph{external information} to improve a forecast is a third method. The g
 
 \section{Moving Average}
 
-The \emph{moving average smoother}\index{moving average} comes in two flavors: \emph{centered}\index{smoothing!moving average!centered} and \emph{trailing}\index{smoothing!moving average!trailing}. In both cases we look at the time series through a \emph{window} with width $w$ = the number of consecutive values we take into account.
+The \emph{moving average smoother}\index{moving average} comes in two flavors: \emph{centered}\index{smoothing!moving average!centered}\index{CMA} and \emph{trailing}\index{smoothing!moving average!trailing}\index{TMA}. In both cases we look at the time series through a \emph{window} with width $w$ = the number of consecutive values we take into account.
 
 \subsection{Centered moving average}\index{moving average!centered}
 
@@ -1350,6 +1350,96 @@ accuracy(naive(stats::filter(train.ts, fw, sides=1), h = nValid), valid.ts)
 
 The choice of the window width $w$ is a balancing act between \emph{under-smoothing}\index{smoothing!under-smoothing} and \emph{over-smoothing}\index{smoothing!over-smoothing}. Narrow windows will show local trends, broader windows will show the general trend. Domain knowledge should give some indication.
 
+\subsection{What does averaging do to trend, seasonal and error components?}
+
+\newthought{Trend}\index{averaging!effect on trend}
+
+The average of a linear trend, is the trend itself. Centered averaging will give you the same line, trailing averaging results in a time shift.
+
+<<label=influenceaverageontrend, fig=TRUE, include=FALSE, echo=FALSE>>=
+inf.trend <- data.frame(t = seq(0, 100, by = 1), trend = 0, smoothcent = 0, smoothtrail = 0)
+w <- 10
+fw <- rep(1/w, w)
+inf.trend$trend <- 1 + 5*inf.trend$t
+inf.trend$smoothcent <- stats::filter(inf.trend$trend, fw, sides = 2)
+inf.trend$smoothtrail <- stats::filter(inf.trend$trend, fw, sides = 1)
+ggplot(data=inf.trend, aes(x=t)) +
+  geom_line(aes(y = inf.trend$trend)) +
+  geom_line(aes(y = inf.trend$smoothcent), color = "red", lty = 2) +
+  geom_line(aes(y = inf.trend$smoothtrail), color = "blue", lty = 2) +
+  JT.theme
+@
+
+\begin{marginfigure}
+\includegraphics[width=1\textwidth]{PTSFR-influenceaverageontrend}
+\caption{Averaging a linear trend. Centered (no influence), Trailing (time shift)}
+\label{fig:influenceaverageontrend}
+\setfloatalignment{b}
+\end{marginfigure}
+
+The average of a polynomial trend follows the polynomial trend, with an extra constant (Figure~\ref{fig:influenceaverageontrendpoly}). Centered averaging will give you approximatively the same line, trailing averaging results in a time shift equal to $w/2$.
+
+If
+\begin{equation}
+	y = b_{0} + b_{1}t + b_{2}t^{2}
+\end{equation}
+
+then
+\begin{equation}
+	\bar{y} = \frac{1}{w} \int_{t-\frac{w}{2}}^{t + \frac{w}{2}} (b_{0} + b_{1}t + b_{2}t^2) =b_{0} + b_{1}t + b_{2}t^{2} + \frac{b_{2}w^{2}}{12} = y(t) + const
+\end{equation}
+
+<<label=influenceaverageontrendpoly, fig=TRUE, include=FALSE, echo=FALSE>>=
+inf.trend <- data.frame(t = seq(0, 100, by = 1), trend = 0, smoothcent = 0, smoothtrail = 0)
+w <- 10
+fw <- rep(1/w, w)
+inf.trend$trend <- 1 + 5*inf.trend$t + 0.1*inf.trend$t^2
+inf.trend$smoothcent <- stats::filter(inf.trend$trend, fw, sides = 2)
+inf.trend$smoothtrail <- stats::filter(inf.trend$trend, fw, sides = 1)
+ggplot(data=inf.trend, aes(x=t)) +
+  geom_line(aes(y = inf.trend$trend)) +
+  geom_line(aes(y = inf.trend$smoothcent), color = "red", lty = 2) +
+  geom_line(aes(y = inf.trend$smoothtrail), color = "blue", lty = 2) +
+  JT.theme
+@
+
+\begin{marginfigure}
+\includegraphics[width=1\textwidth]{PTSFR-influenceaverageontrendpoly}
+\caption{Averaging a polynomial trend. Centered (no influence), Trailing (time shift)}
+\label{fig:influenceaverageontrendpoly}
+\setfloatalignment{b}
+\end{marginfigure}
+
+\newthought{Seasonal}\index{averaging!effect on seasonal component}
+
+The moving average of a seasonal component (if it is a pure sine), is a sine with the same frequency but a lower amplitude. If the width equals the period of the sine, the amplitude is zero. Centered averaging will give a sine in phase, trailing average will give a phase shift. 
+
+<<label=influenceaverageonseason, fig=TRUE, include=FALSE, echo=FALSE>>=
+inf.season <- data.frame(t = seq(0, 100, by = 1), sine = 0, smoothcent = 0, smoothtrail = 0)
+T <- 25
+w <- 7
+fw <- rep(1/w, w)
+inf.season$sine <- sin(2*pi*inf.season$t/T)
+inf.season$smoothcent <- stats::filter(inf.season$sine, fw, sides = 2)
+inf.season$smoothtrail <- stats::filter(inf.season$sine, fw, sides = 1)
+ggplot(data=inf.season, aes(x=t)) +
+  geom_line(aes(y = inf.season$sine)) +
+  geom_line(aes(y = inf.season$smoothcent), color = "red", lty = 2) +
+  geom_line(aes(y = inf.season$smoothtrail), color = "blue", lty = 2) +
+  JT.theme
+@
+
+\begin{marginfigure}
+\includegraphics[width=1\textwidth]{PTSFR-influenceaverageonseason}
+\caption{Averaging a seasonal component. Centered (no influence), Trailing (time shift)}
+\label{fig:influenceaverageonseason}
+\setfloatalignment{b}
+\end{marginfigure}
+
+\newthought{The error term}\index{averaging!effect on error}
+
+If the error (noise) can be considered as coming from a normal distribution with mean=0 and a variance =$\sigma^{2}$, then averaging of width $w$ will lead to a new error distribution which will be normal, with mean=0 but with a reduced variance=$var=\frac{\sigma^{2}}{w}$.
+\newpage
 \section{Differencing}
 
 Removing a trend and/or a seasonal pattern can be done by \emph{differencing}\index(differencing)\index{trend!removing of}\index{seasonality!removing of}. A \emph{lag-1} difference\index{lag}\index{differencing!lag} takes the difference between every two consecutive values in the series. In general, a \emph{lag-k} difference substracts the value from k time units back:
@@ -1361,7 +1451,7 @@ In R the \textit{diff}-function provides the differenced series.
 
 \subsection{Removing a trend}\index{trend:removing}
 
-A \emph{lag-1} difference can remove a trend. While the ridership time series (upper section in Figure~\ref{fig:Amtraklag1}) shows a U-shaped trend, no trend is visible in the lag1-series. For highter order trends, another round of lag-1 differencing might by necessary. In this case it seems that one lag-1 difference is sufficient to remove the trend. Look at the difference in the scale of the y-axis! The differenced time series should hover around the zero-line when the trend is removed. In the detrended time series the seasonal component should now be detectable.
+A \emph{lag-1} difference can remove a trend. While the ridership time series (upper section in Figure~\ref{fig:Amtraklag1}) shows a U-shaped trend, no trend is visible in the lag1-series. For highter order trends, another round of lag-1 differencing might by necessary. In this case it seems that one lag-1 difference is sufficient to remove the trend. Look at the difference in the scale of the y-axis! The differenced time series should hover around the horizontal line when the trend is removed. In the detrended time series the seasonal component should now be detectable.
 
 \newthought{linear trend}\index{differencing!linear trend}
 
@@ -1372,10 +1462,10 @@ If
 
 then
 \begin{equation}
-	lag1_{t} = y_{t} - y_{t-1}=\left( b_{0} + b_{1}t \right) - \left( b_{0} + b_{1}(t-1) \right) = b_{1}
+	lagk_{t} = y_{t} - y_{t-k}=\left( b_{0} + b_{1}t \right) - \left( b_{0} + b_{1}(t-k) \right) = b_{1}k
 \end{equation}
 
-The linear trend is removed and we only have a level equal to $b_{1}$
+The linear trend is removed and we only have a level equal to $b_{1}k$. For $k=1$ this reduces to $lag1_{t}=b_{1}$.
 
 \newthought{quadratic trend}\index{differencing!quadratic trend}
 
@@ -1386,10 +1476,10 @@ If
 
 then
 \begin{equation}
-	lag1_{t} = y_{t} - y_{t-1}=\left( b_{0} + b_{1}t + b_{2}t^{2}\right) - \left( b_{0} + b_{1}(t-1) + b_{2}(t-1)^{2} \right) = (b_{1} - 1) + 2b_{2}t
+	lagk_{t} = y_{t} - y_{t-1}=\left( b_{0} + b_{1}t + b_{2}t^{2}\right) - \left( b_{0} + b_{1}(t-k) + b_{2}(t-k)^{2} \right) = (b_{1} - b_{2}k^{2}) + 2b_{2}kt
 \end{equation}
 
-The quadratic trend is reduced to a linear trend. A second lag-1 differencing will reduce this to a constant.
+The quadratic trend is reduced to a linear trend. A second lag-1 differencing will reduce this to a constant. For $k=1$ this reduces to $lag1_{t}=(b_{1} - b_{2}) + 2b_{2}t$.
 
 \newthought{polynomial trend}\index{differencing!polynomial trend}
 
@@ -1473,10 +1563,11 @@ If
 then
 
 \begin{equation}
-	lag_T(t)=y_{t}-y_{t-T}=\hat{a}sin(\frac{2\pi t}{T} + \alpha)-\hat{a}sin(\frac{2\pi (t-T)}{T} + \alpha) =0
+	lag_k(t)=y_{t}-y_{t-k}=\hat{a}sin(\frac{2\pi t}{T} + \alpha) - \hat{a}sin(\frac{2\pi (t-k)}{T} + \alpha) = \hat{a}sin(\frac{2\pi t}{T} + \alpha) - \hat{a}sin(\frac{2\pi t}{T} + \alpha - \frac{2\pi k}{T})
+	\label{eq:seasonlag}
 \end{equation}
 
-A \emph{lag-T}-differencing will completely remove a true sine seasonality of the same period.
+The difference between two sine-functions with the same period T (and thus the same frequency f) is again a sine function with the same period T. \emph{Differencing} seasonal elements within the signal will therefore not change the frequency of the intial seasonal component. It will change the amplitude because the phase-angle of the second term in equation \ref{eq:seasonlag} has changed by $\frac{2\pi k}{T}$. In the special case where $k=T$ the change in phase-angle will be $2\pi$ and the difference between the two sine-functions will be zero. This means that choosing the lag equal to the period of a seasonal component will make this component disappear: a \emph{lag-T}-differencing will completely remove (a true sine) seasonality of the same period.
 
 Do \emph{lag-T}-differencing, where $T$ is the period (or suspected period) of the season. For the Amtrak time series $T=12$. 
 
@@ -1627,6 +1718,154 @@ grid.arrange(p1, p2, p3, p4,  nrow=2)
 \subsection{Effect of differencing on the error term}\index{differencing!effect on error}
 
 If the error (noise) can be considered as coming from a normal distribution with mean=0 and a variance =$\sigma^{2}$, then a differencing operation (of any lag) will lead to a new error distribution which will be normal, with mean=0 but with variance=$var=\sigma^{2} + \sigma^{2}=2\sigma^{2}$. Further lag-differencing operations will steadily increase the variance of the error term.
+
+\section{Simple exponential smoothing}\index{simple exponential smoothing}\index{SEM}\index{smoothing!simple exponential}
+
+It is a trailing moving average method where we take into account \emph{all} previous values, but they are not weighted uniformly: the weighing factor decreases exponentially. This give more weight to recent information. The sum of the weighing factors must of course be equal to 1. The choice for the weighing factor is $\alpha (1 - \alpha)^{i}$, because
+\begin{equation}
+	\sum_{i=0}^{i=+\infty} \alpha (1 -\alpha)^{i} = 1 \quad for \quad 0 \leq \alpha \leq 1
+\label{eq:smoothingconstant}
+\end{equation}
+
+This generates a forecast at $t=t+1$:
+\begin{equation}
+	F_{t+1}= \alpha y_{t} + \alpha (1-\alpha) y_{t-1} + \ldots + \alpha (1-\alpha)^{i}y_{t-i} + \ldots
+\label{eq:forecastexpsmooth}
+\end{equation}
+
+Because
+\begin{equation}
+	F_{t}= \alpha y_{t-1} + \alpha (1-\alpha) y_{t-2} + \ldots + \alpha (1-\alpha)^{i}y_{t-i-1} + \ldots
+\end{equation}
+
+it follows that:
+\begin{equation}
+	F_{t+1}  = \alpha y_{t} + (1-\alpha) F_{t} = F_{t} + \alpha (y_{t} - F_{t}) = F_{t} + \alpha e_{t}
+\end{equation}
+
+This formulation shows that \emph{simple exponential smoothing} is a \emph{learning} process: it takes the former forecast and adjusts it based on the difference with the actual value. If the former forecast was too high ($e_{t} <0$) then it will adjust the next forecast downward. If the former was too low ($e_{t}>0$) it will adjust upwards. The ''learning" is exemplified by the \emph{smoothing constant}\index{smoothing constant}\index{smoothing!constant} $\alpha$.
+
+From the formula we can see that \emph{simple exponential smoothing} will only generate one prediction for the future. The second prediction cannot be calculated as we do not know the acutal value of $y_{t+1}$. Usually this means that for forecasts from $F_{t+2}$ and higher we keep the forecast constant and equal to $F_{t+1}$. This is a small improvement on a naive forecast, but not much. As such, \emph{simple exponential smoothing} is not a usefull forecasting method for time series that have trend and/or seasonality.
+
+\subsection{Choosing the smoothing constant $\alpha$}\index{smoothing constant}\index{simple exponential smoothing!smoothing constant}
+
+The value of the smoothing constant has to be between 0 and 1 (included) (see equation~\ref{eq:smoothingconstant}). $\alpha=1$ results in $F_{t+1}=y_{t}$, which is the naive forecast. $\alpha$ values close to 0 will take into account a lot of the former data values. A rule of thumb for $\alpha$ is the range $[0.1 - 0.2]$, but we can optimize $\alpha$ by looking at the predictive quality metrics (MAPE, RMSE ...) of the validation period for different choices of $\alpha$.
+
+\newthought{Example: Amtrak data, twice differenced}
+
+The example given in the book is the time series that we get from the Amtrak time series after double differencing: a lag12 differencing to remove the seasonality, and on the result a lag1 differencing to remove the trend. The result of these operations should be the error, but not the original noise on the signal but an ''enhanced" version because the differencing operations each time double the variance. The goal is, according to the book, to work with a time series that has no trend and no seasonality. I think that means a random signal with average 0. Forecasting such a signal seems to be easy: it is zero for the whole validation period and for the future. I see no reason to make this very complicated. Working with the assumption that this is a ''deformed" error signal with 4 times (due to two differencing operations) the variance of the original signal, we could even say more: the forecast for the error signal is a random value taken from a normal distribution with mean=0 and standard deviation equal to $\frac{\sqrt{var signal}}{2}$. From this we could calculate a 95\% confidence interval.
+
+However, the book uses the \textit{ets}-function from the \textbf{forecast}-package. The letters ''ets" stand for: \emph{error}, \emph{trend} and \emph{seasonality}. The simple exponential smoothing model is called using the letter combination ''ANN" where ''A" stands for \emph{additive error}, ''N" for \emph{no trend} en the second ''N" for \emph{no seasonality}. The results of the model with $\alpha=0.2$ are given in Figure~\ref{fig:simpleexpo} (the blue line). You can let the \textit{ets}-function determine the optimum value of $\alpha$ by calling the \textit{ets}-function without specifying the value of $\alpha$ (the red line).
+
+<<label=Amtraksimpleexpo, fig=TRUE, include=FALSE, echo=FALSE>>=
+diff.twice.ts <- diff(diff(ridership.ts, lag = 12), lag = 1)
+train.ts <- window(diff.twice.ts, start = c(1992, 2), end = c(1992, nTrain + 1))
+valid.ts <- window(diff.twice.ts, start = c(1992, nTrain + 2), end = c(1992, nTrain + 1 + nValid))
+ses <- ets(train.ts, model = "ANN", alpha = 0.2)
+ses.opt <- ets(train.ts, model = "ANN")
+ses.pred <- forecast(ses, h = nValid, level = 0) # level=0 means no confidence interval calculation
+ses.opt.pred <- forecast(ses.opt, h = nValid, level = 0) # level=0 means no confidence interval calculation
+plot(ses.pred,
+     ylim = c(-250, 300),
+     ylab = "Ridership (Twice-Differenced)",
+     xlab = "Time",
+     bty = "l",
+     xaxt = "n",
+     xlim = c(1991, 2006.25),
+     main = "",
+     lty = 2)
+axis(1 , at = seq(1991, 2006, 1), labels = format(seq(1991, 2006, 1)))
+lines(ses.pred$fitted, lwd = 2, col = "blue")
+lines(ses.opt.pred$fitted, lwd = 2, col = "red")
+lines(ses.opt.pred$mean, lwd = 2, col = "red")
+lines(valid.ts)
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-Amtraksimpleexpo}
+\caption{Simple exponential smoothing on Amtrak data twice differenced lag12 and lag1}
+\label{fig:Amtraksimpleexpo}
+\setfloatalignment{b}
+\end{figure}
+
+The model forecasts a constant value equal to \Sexpr{round(tail(ses.pred$fitted, n = 1),3)} when we set $\alpha=0.2$. For the optimum model the constant is \Sexpr{round(tail(ses.opt.pred$fitted, n = 1),5)}. When we look at the details of the optimal model, we find that the optimum value of $\alpha=$ \Sexpr{round(ses.opt$par[1],4)}. Because every term in equation~\ref{eq:forecastexpsmooth} is multiplied with $\alpha$ this comes down to a value of about zero.
+
+\newthought{Example: addcon data, twice differenced T=111 and T=1}
+
+<<label=addconsimpleexpo, fig=TRUE, include=FALSE, echo=FALSE>>=
+diff.twice.ts <- diff(diff(addcon.ts, lag = 111), lag = 1)
+nValid <- 100
+nTrain <- length(addcon.ts) - nValid
+train.ts <- window(diff.twice.ts, start = 1, end = nTrain)
+valid.ts <- window(diff.twice.ts, start = nTrain + 1, end = nTrain + nValid)
+ses <- ets(train.ts, model = "ANN", alpha = 0.2)
+ses.opt <- ets(train.ts, model = "ANN")
+ses.pred <- forecast(ses, h = nValid, level = 0) # level=0 means no confidence interval calculation
+ses.opt.pred <- forecast(ses.opt, h = nValid, level = 0) # level=0 means no confidence interval calculation
+plot(ses.pred,
+     ylim = c(-25, 25),
+     ylab = "addcon (Twice-Differenced)",
+     xlab = "t",
+     bty = "l",
+     xaxt = "n",
+     xlim = c(0, 1000),
+     main = "",
+     lty = 2)
+axis(1 , at = seq(0, 1000, 100))
+lines(ses.pred$fitted, lwd = 2, col = "blue")
+lines(ses.opt.pred$fitted, lwd = 2, col = "red")
+lines(ses.opt.pred$mean, lwd = 2, col = "red")
+lines(valid.ts)
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-addconsimpleexpo}
+\caption{Simple exponential smoothing on addcon data twice differenced lag111 and lag1}
+\label{fig:addconsimpleexpo}
+\setfloatalignment{b}
+\end{figure}
+
+The model forecasts a constant value equal to \Sexpr{round(tail(ses.pred$fitted, n = 1),3)} when we set $\alpha=0.2$. For the optimum model the constant is \Sexpr{round(tail(ses.opt.pred$fitted, n = 1),5)}. When we look at the details of the optimal model, we find that the optimum value of $\alpha=$ \Sexpr{round(ses.opt$par[1],4)}. Because every term in equation~\ref{eq:forecastexpsmooth} is multiplied with $\alpha$ this comes down to a value of about zero.
+
+What I expected was that this represents the error term in the construction of the addcon time-series. The error was created by choosing random from a N(0,$\sigma=3$) distribution. However, as noted, the differencing will increase the variance. Twice differencing will create a variance that is 4 times the initial variance. Our time-series in the training set has the following characteristics:
+
+<<>>=
+mean(train.ts)
+var(train.ts)
+sqrt(var(train.ts))/2 - sigma
+# looks good
+@
+
+Is addcon twice differenced normally distributed?
+
+<<label=histaddcon2diff, fig=TRUE, include=FALSE, echo=FALSE>>=
+ggplot(data = as.data.frame(diff.twice.ts)) + 
+  geom_histogram(aes(x), bins = 50) +
+  labs(title="histogram of addcon twice differenced") +
+  xlab("time") +
+  ylab("addcon lag111 and lag1") +
+  JT.theme
+@
+
+\begin{figure}
+\includegraphics[width=0.6\textwidth]{PTSFR-histaddcon2diff}
+\caption{Histogram of addcon data twice differenced lag111 and lag1}
+\label{fig:histaddcon2diff}
+\setfloatalignment{b}
+\end{figure}
+
+\subsection{Relation between $w$ (moving average smoothing) and $\alpha$ (simple exponential smoothing)}
+\begin{equation}
+	w = \frac{2}{\alpha}-1
+\end{equation}
+
+\section{Advanced Exponential Smoothing}\index{advanced exponential smoothing}\index{smoothing!advanced exponential}
+
+We can eliminate trend and seasonality by differencing. But these actions also have an impact on each other and on the error component. An alternative is the use of special functions that allow for trend and/or seasonality.
+
+\subsection{Time series with an additiva trend}
+
+Here we can use
 
 \printindex
 
