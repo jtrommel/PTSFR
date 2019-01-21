@@ -1755,7 +1755,7 @@ The value of the smoothing constant has to be between 0 and 1 (included) (see eq
 
 The example given in the book is the time series that we get from the Amtrak time series after double differencing: a lag12 differencing to remove the seasonality, and on the result a lag1 differencing to remove the trend. The result of these operations should be the error, but not the original noise on the signal but an ''enhanced" version because the differencing operations each time double the variance. The goal is, according to the book, to work with a time series that has no trend and no seasonality. I think that means a random signal with average 0. Forecasting such a signal seems to be easy: it is zero for the whole validation period and for the future. I see no reason to make this very complicated. Working with the assumption that this is a ''deformed" error signal with 4 times (due to two differencing operations) the variance of the original signal, we could even say more: the forecast for the error signal is a random value taken from a normal distribution with mean=0 and standard deviation equal to $\frac{\sqrt{var signal}}{2}$. From this we could calculate a 95\% confidence interval.
 
-However, the book uses the \textit{ets}-function from the \textbf{forecast}-package. The letters ''ets" stand for: \emph{error}, \emph{trend} and \emph{seasonality}. The simple exponential smoothing model is called using the letter combination ''ANN" where ''A" stands for \emph{additive error}, ''N" for \emph{no trend} en the second ''N" for \emph{no seasonality}. The results of the model with $\alpha=0.2$ are given in Figure~\ref{fig:simpleexpo} (the blue line). You can let the \textit{ets}-function determine the optimum value of $\alpha$ by calling the \textit{ets}-function without specifying the value of $\alpha$ (the red line).
+However, the book uses the \textit{ets}-function from the \textbf{forecast}-package. The letters ''ets" stand for: \emph{error}, \emph{trend} and \emph{seasonality}. The simple exponential smoothing model is called using the letter combination ''ANN" where ''A" stands for \emph{additive error}, ''N" for \emph{no trend} en the second ''N" for \emph{no seasonality}. The results of the model with $\alpha=0.2$ are given in Figure~\ref{fig:Amtraksimpleexpo} (the blue line). You can let the \textit{ets}-function determine the optimum value of $\alpha$ by calling the \textit{ets}-function without specifying the value of $\alpha$ (the red line).
 
 <<label=Amtraksimpleexpo, fig=TRUE, include=FALSE, echo=FALSE>>=
 diff.twice.ts <- diff(diff(ridership.ts, lag = 12), lag = 1)
@@ -1854,18 +1854,74 @@ ggplot(data = as.data.frame(diff.twice.ts)) +
 \setfloatalignment{b}
 \end{figure}
 
+\newthought{!!! Important point !!!}
+
+My irritation with the seemingly pointless exercise of modelling a time series without a trend or seasonality is the consequence of ''automatice engineering thinking". The automatic assumption is that there is an underlying trend which can be found as a polynomial (or other function) model. Seasonality can be reduced to finding the Fourier components of the periodic element within the time series. The rest is noise: an error component presumed to be modelled by a normal distribution N(0,$\sigma$). This is clearly a \emph{model based} forecasting method. The forecasting element resides in extrapolating the trend (=assuming that the function holds outside the data range), assuming that the seasonality holds, and that we can estimate the error.
+
+Methods like \emph{simple exponential smoothing} and more sofisticated versions (see \ref{sec:advanced exponential smoothing} \emph{advanced exponential smooting}) are \emph{data driven} methods. For example: in the modelling of a time series without trend or seasonality, it does not assume that the error is N(0,$\sigma$)-distributed. It prefers agnosticism and bases itself on the data. The \emph{simple exponential smoothing} ''learns" from all previous data points. The \emph{simple exponential smoothing} will only give you one forecast $F_{t+1}$ based on all available data points $y_{i} \quad for \quad i=1 \ldots t$.  
+
 \subsection{Relation between $w$ (moving average smoothing) and $\alpha$ (simple exponential smoothing)}
 \begin{equation}
 	w = \frac{2}{\alpha}-1
 \end{equation}
 
+\newpage
 \section{Advanced Exponential Smoothing}\index{advanced exponential smoothing}\index{smoothing!advanced exponential}
+\label{sec:advanced exponential smoothing}
 
 We can eliminate trend and seasonality by differencing. But these actions also have an impact on each other and on the error component. An alternative is the use of special functions that allow for trend and/or seasonality.
 
-\subsection{Time series with an additiva trend}
+\subsection{Time series with a trend: additive or multiplicative}
 
-Here we can use
+\newthought{Additive trend}
+
+The main idea is that we ''rebuild" the time series learning from previous data points. This is another way of looking at \emph{trend}\index{trend}. From a modelling perspective we can propose that the trend is given by (e.g.) a linear equation:
+
+\begin{equation}
+	y_{t} = b_{0} + b_{1}t
+\end{equation}
+
+But we could also define it by specifying \emph{locally} how the next data point can be found from the last:
+
+\begin{eqnarray}
+  y_{0} &=& b_{0}\\
+  y_{t+1} &=& y_{t} + b_{1}
+\end{eqnarray}
+
+This is a \emph{local} generating formula, because it is bases on the last local position and added to that a, local, change. The \emph{trend}\index{trend} here is interpreted as an added (positive or negative) \emph{local} term. In this case this trend is a constant ($b_{1}$), but this is not necessary. In general, when there is a trend, we can write that the next element can be found from two terms: the (local) \emph{level} $L_{t}$ and the (local) \emph{trend} $T_{t}$. For an \emph{additive trend}\index{trend!additive} the forecast one time step ahead will be:
+
+\begin{equation}
+	F_{t+1} = L_{t} + T_{t}
+\end{equation}
+
+It is also the beginning of a forecast further into the future. Assuming the trend holds we can write:
+
+\begin{equation}
+	F_{t+k} = L_{t} + k*T_{t}
+\end{equation}
+
+The values for the local level $L_{t}$ and the local trend $T_{t}$ are calculated by using a form of \emph{simple exponential smoothing}:
+
+\begin{eqnarray}
+  L_{t} &=& \alpha y_{t} + (1-\alpha)(L_{t-1} + T_{t-1} = \alpha y_{t} + (1-\alpha)F_{t-1}  \\
+  T_{t} &=& \beta (L_{t} - L_{t-1}) + (1-\beta)T_{t-1}
+\end{eqnarray}
+
+The smoothing constants $\alpha$ and $\beta$ are constants between 0 and 1.
+
+There is of course also an error term present. It can be additive
+\begin{equation}
+	y_{t} = L_{t} + T_{t} + e_{t}
+\end{equation}
+
+or multiplicative
+\begin{equation}
+	y_{t} = (L_{t} + T_{t})*(1 + e_{t})
+\end{equation}
+
+\newthought{Multiplicative trend}
+
+
 
 \printindex
 
