@@ -1897,42 +1897,42 @@ This is a \emph{local} generating formula, because it is based on the last local
 It is also the beginning of a forecast further into the future. Assuming the trend holds we can write:
 
 \begin{equation}
-	F_{t+k} = L_{t} + k*T_{t}
+	F_{t+k} = L_{t} + k.T_{t}
 	\label{eq:AESadded}
 \end{equation}
 
 The values for the local level $L_{t}$ and the local trend $T_{t}$ are calculated by using a form of \emph{simple exponential smoothing}:
 
 \begin{eqnarray}
-  L_{t} &=& \alpha y_{t} + (1-\alpha)(L_{t-1} + T_{t-1}) = \alpha y_{t} + (1-\alpha)F_{t-1}  \\
+  L_{t} &=& \alpha y_{t} + (1-\alpha)(L_{t-1} + T_{t-1}) = \alpha y_{t} + (1-\alpha)F_{t}  \\
   T_{t} &=& \beta (L_{t} - L_{t-1}) + (1-\beta)T_{t-1}
 \end{eqnarray}
 
-The smoothing constants $\alpha$ and $\beta$ are constants between 0 and 1. Once we have calculated the values of $L_{t}$ and $T_{t}$ the forecast with an additive trend, given by \ref{eq:AESadded} is \emph{linear}.
+The smoothing constants $\alpha$ and $\beta$ are constants between 0 and 1. Once we have calculated the values of $L_{t}$ and $T_{t}$ the forecast with an additive trend, given by \ref{eq:AESadded} is \emph{linear}. It is clear that the level $L_{t}$ and the trend $T_{t}$ have the same units as the time-series value $y_{t}$.
 
 There is of course also an error term present. It can be additive
 \begin{equation}
-	y_{t} = L_{t} + T_{t} + e_{t}
+	y_{t+1} = L_{t} + T_{t} + e_{t+1} = F_{t+1}  + e_{t+1}
 \end{equation}
 
 or multiplicative
 \begin{equation}
-	y_{t} = (L_{t} + T_{t})*(1 + e_{t})
+	y_{t+1} = (L_{t} + T_{t}).(1 + e_{t+1}) = F_{t+1}.(1 + e_{t+1})
 \end{equation}
 
 \newthought{Multiplicative trend}
 
-The disadvantage of a model with \emph{added trend} is that the forecast will be linear in time. When we have the impression (from visualizing the data, or from other information) that the relation between the time-series value $y_{t}$ and time $t$ is non-linear we can incorporate this into the forecasting model by making the term we add to the level \emph{dependant} upon the present value of the time-series. If the difference between the present value and the next value depends upon the present value we can write this locally as:
+The disadvantage of a model with \emph{added trend} is that the forecast will be linear in time. When we have the impression (from visualizing the data, or from other information) that the relation between the time-series value $y_{t}$ and time $t$ is non-linear we can incorporate this into the forecasting model by making the term we add to the level \emph{dependent} upon the present value of the time-series. If the difference between the present value and the next value depends upon the present value we can write this locally as:
 \begin{equation}
-	y_{t+1} - y_{t} = y_{t}*p
+	y_{t+1} - y_{t} = y_{t}.p
 \end{equation}
 
 From this it follows that
 \begin{equation}
-	y_{t+1} = y_{t} + y_{t}*p = y_{t}(1 + p)
+	y_{t+1} = y_{t} + y_{t}.p = y_{t}(1 + p)
 \end{equation}
 
-and
+and, assuming that $p$ remains the same,
 \begin{equation}
 	y_{t+2} = y_{t+1}(1 + p) = y_{t}(1+p)^{2}
 \end{equation}
@@ -1970,6 +1970,45 @@ grid.arrange(p1, p2, nrow = 1)
 \label{fig:nonlinearp}
 \setfloatalignment{b}
 \end{marginfigure}
+
+Our forecast for $t+k$ will now be:
+\begin{equation}
+	F_{t+k} = L_{t}.T_{t}^{k} \quad with \quad T_{t}=1+p
+\end{equation}
+
+From this equation it follows that the level $L_{t}$ has the same units as the time-series value $y_{t}$, but that the trend $T_{t}$ is \emph{dimensionless} and depends on the fraction $\frac{L_{t}}{L_{t-1}}$.
+
+The values for the local level $L_{t}$ and the local trend $T_{t}$ are again calculated using a form of \emph{simple exponential smoothing}. For the trend we must use the fraction $\frac{L_{t}}{L_{t-1}}$ :
+\begin{eqnarray}
+  L_{t} &=& \alpha y_{t} + (1-\alpha)(L_{t-1} . T_{t-1}) = \alpha y_{t} + (1-\alpha)F_{t}  \\
+  T_{t} &=& \beta (\frac{L_{t}}{L_{t-1}}) + (1-\beta)T_{t-1}
+\end{eqnarray}
+
+The error term can be additive
+\begin{equation}
+	y_{t+1} = L_{t} . T_{t} + e_{t+1} = F_{t+1} + e_{t+1}
+\end{equation}
+
+or multiplicative
+\begin{equation}
+	y_{t+1} = (L_{t} . T_{t}).(1 + e_{t+1}) = F_{t+1}.(1 + e_{t+1})
+\end{equation}
+
+\subsection{Time series with a trend and seasonality: additive, multiplicative or combinations}
+
+\newthought{Additive model}
+
+An extra term $S$ is added to capture the seasonality. Assuming all components are additive, the forecast $k$ time steps ahead is now:
+\begin{equation}
+	F_{t+k} = L_{t} + k.T{t} + S_{t+k-M} \quad with \quad M=period
+\end{equation}
+
+We add \emph{level}, \emph{trend} and the value of the seasonal component one period (M) ago. A measure for the seasonal component is the difference between the actual value $y_{t}$ and the level $L_{t}$. For the calculation of the new level, we have to substract the seasonal value from the measured value $y_{t}$. This gives the followign exponential smoothing equations:
+\begin{eqnarray}
+  L_{t} &=& \alpha (y_{t} - S_{t-M}) + (1-\alpha)(L_{t-1} + T_{t-1})  \\
+  T_{t} &=& \beta (L_{t} - L_{t-1}) + (1-\beta)T_{t-1} \\
+  S_{t} &=& \gamma (y_{t} - L_{t}) + (1 - \gamma)S_{t-M}
+\end{eqnarray}
 
 \printindex
 
