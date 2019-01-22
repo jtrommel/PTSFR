@@ -1994,7 +1994,7 @@ or multiplicative
 	y_{t+1} = (L_{t} . T_{t}).(1 + e_{t+1}) = F_{t+1}.(1 + e_{t+1})
 \end{equation}
 
-\subsection{Time series with a trend and seasonality: additive, multiplicative or combinations}
+\subsection{Time series with a trend and seasonality: Holt-Winters exponential smoothing}
 
 \newthought{Additive model}
 
@@ -2003,12 +2003,94 @@ An extra term $S$ is added to capture the seasonality. Assuming all components a
 	F_{t+k} = L_{t} + k.T{t} + S_{t+k-M} \quad with \quad M=period
 \end{equation}
 
-We add \emph{level}, \emph{trend} and the value of the seasonal component one period (M) ago. A measure for the seasonal component is the difference between the actual value $y_{t}$ and the level $L_{t}$. For the calculation of the new level, we have to substract the seasonal value from the measured value $y_{t}$. This gives the followign exponential smoothing equations:
+We can see what happens in this example. Here we create a time-series by adding a linear function ($0.005t$) and a sine-function ($sin(2 \pi t/M)$).
+
+<<label=exampletrendandseason, fig=TRUE, include=FALSE, echo=FALSE>>=
+M <- 24 # lengte van de periode
+n <- 8 # aantal periodes
+data.df <- data.frame(t=seq(0,n*M,by=1), y = 0, L = 0, T = 0, S = 0, F= 0)
+alpha <- 0.1
+beta <- 0.1
+gamma <- 0.9
+data.df$y <- (1/(M*n))*data.df$t + sin(2*pi*data.df$t/M)
+data.df$L[1] <- data.df$y[1]
+for (i in seq(2, M, by = 1)) {
+  data.df$L[i] <- alpha*data.df$y[i] + (1 - alpha)*(data.df$L[i-1] + data.df$T[i-1])
+  data.df$T[i] <- beta*(data.df$L[i] - data.df$L[i-1]) + (1 - beta)*data.df$T[i-1]
+  data.df$S[i] <- gamma*(data.df$y[i] - data.df$L[i])
+  data.df$F[i] <- data.df$L[i-1] + data.df$T[i-1]
+}
+for (i in seq(M + 1, n*M, by = 1)) {
+  data.df$L[i] <- alpha*(data.df$y[i] - data.df$S[i-M]) + (1 - alpha)*(data.df$L[i-1] + data.df$T[i-1])
+  data.df$T[i] <- beta*(data.df$L[i] - data.df$L[i-1]) + (1 - beta)*data.df$T[i-1]
+  data.df$S[i] <- gamma*(data.df$y[i] - data.df$L[i]) + (1 - gamma)*data.df$S[i-M]
+  data.df$F[i] <- data.df$L[i-1] + data.df$T[i-1] + data.df$S[i-M]
+}
+ggplot(data = data.df, aes(x = t)) +
+  geom_line(aes(y = y), color = "red") +
+  geom_line(aes(y = L), color = "blue") +
+  geom_line(aes(y = T), color = "cyan") +
+  geom_line(aes(y = S), color = "green") +
+  geom_line(aes(y = F), color = "black") +
+  labs(title="Example Holt-Winters on linear + sine") +
+  JT.theme
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-exampletrendandseason}
+\caption{Evolution of components for linear + sine example}
+\label{fig:exampletrendandseason}
+\setfloatalignment{b}
+\end{figure}
+
+The interesting line is the trend (cyan): gradually it becomes a constant, and at first sight it is zero. Checking with the data we find that the final value is \Sexpr{round(data.df$T[nrow(data.df) - 1], 4)}. This is a small value, but it is almost equal to the slope of the linear function (0.005). And because $L_{t+1} \approx (L_{t-1} + T_{t-1})$ the level $L$ (blue) builds up to the original linear function. But we can see that the true value $y_{t}$ (red) switches regurarly above and below the blue line. The difference $y_{t} - L_{t}$ is a measure for the seasonal component. On the other hand $y_{t} - S_{t}$ is a measure for the level $L_{t}$. However: we do not know $S_{t}$. But because we know that $S_{t}$ is periodic with period $M$, we can use $S_{t-M}$ as a substitude.
+
+This gives us the following exponential smoothing equations:
 \begin{eqnarray}
   L_{t} &=& \alpha (y_{t} - S_{t-M}) + (1-\alpha)(L_{t-1} + T_{t-1})  \\
   T_{t} &=& \beta (L_{t} - L_{t-1}) + (1-\beta)T_{t-1} \\
-  S_{t} &=& \gamma (y_{t} - L_{t}) + (1 - \gamma)S_{t-M}
+  S_{t} &=& \gamma (y_{t} - L_{t}) + (1 - \gamma)S_{t-M} \\
+  F_{t + 1} &=& L_{t} + T_{t} + S_{t + 1 -M}
 \end{eqnarray}
+
+We can see that the forecasted values $F_{t+1}$ (black) gradually get closer and closer to the true values $y_{t}$ (red). But it is clear that we need at least y-values for one complete period M, and preferably for many of them. In this example we get good convergence after 5 periods.
+
+\newthought{Multiplicative and combined models}
+
+The \textbf{forecast}-package has the function \textit{ets} which can handle all kinds of additive, multiplicative and combined models. The choice of the model is communicated to the function by a three letter combination ''ets". The ''e" stands for the error (additive=A, multiplicative=M, no error=N), the ''t" stands for the trend (additive=A, multiplicative=M, no trend=N), the ''s" stands for the seasonal component (additive=A, multiplicative=M, no season=N). For example: the combination AMN stands for additive error, mulitplicative trend and no seasonality. If we model the Amtrak data with a multiplicative error, an additive trend, and an additive seasonal we get:
+
+<<label=HWAmtrakMAA, fig=TRUE, include=FALSE, echo=FALSE>>=
+fixed.nValid <- 36
+fixed.nTrain <- length(ridership.ts) - fixed.nValid
+train.ts <- window(ridership.ts, 
+                   start = c(1991, 1),
+                   end = c(1991, fixed.nTrain))
+valid.ts <- window(ridership.ts, 
+                   start = c(1991, fixed.nTrain + 1), 
+                   end = c(1991, fixed.nTrain + fixed.nValid))
+hwin <- ets(train.ts, model = "MAA")
+hwin.pred <- forecast(hwin, h = nValid, level = 0)
+plot(hwin.pred,
+     ylim = c(1300, 2600),
+     ylab = "Ridership",
+     xlab = "Time",
+     bty = "l",
+     xaxt = "n",
+     xlim = c(1991, 2006.25),
+     main = "",
+     lty = 2)
+axis(1, at = seq(1991, 2006, 1),
+     labels = format(seq(1991, 2006, 1)))
+lines(hwin.pred$fitted, lwd = 2, col = "green")
+lines(valid.ts, col = "red", lty = 2)
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-HWAmtrakMAA}
+\caption{Holt-Winters MAA model of Amtrak Ridership}
+\label{fig:HWAmtrakMAA}
+\setfloatalignment{b}
+\end{figure}
 
 \printindex
 
