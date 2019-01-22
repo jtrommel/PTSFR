@@ -1888,7 +1888,7 @@ But we could also define it by specifying \emph{locally} how the next data point
   y_{t+1} &=& y_{t} + b_{1}
 \end{eqnarray}
 
-This is a \emph{local} generating formula, because it is bases on the last local position and added to that a, local, change. The \emph{trend}\index{trend} here is interpreted as an added (positive or negative) \emph{local} term. In this case this trend is a constant ($b_{1}$), but this is not necessary. In general, when there is a trend, we can write that the next element can be found from two terms: the (local) \emph{level} $L_{t}$ and the (local) \emph{trend} $T_{t}$. For an \emph{additive trend}\index{trend!additive} the forecast one time step ahead will be:
+This is a \emph{local} generating formula, because it is based on the last local position and it adds to that a, local, change. The \emph{trend}\index{trend} here is interpreted as an added (positive or negative) \emph{local} term. In this case this trend is a constant ($b_{1}$), but this is not necessary. In general, when there is a trend, we can write that the next element can be found from two terms: the (local) \emph{level} $L_{t}$ and the (local) \emph{trend} $T_{t}$. For an \emph{additive trend}\index{trend!additive} the forecast one time step ahead will be:
 
 \begin{equation}
 	F_{t+1} = L_{t} + T_{t}
@@ -1898,16 +1898,17 @@ It is also the beginning of a forecast further into the future. Assuming the tre
 
 \begin{equation}
 	F_{t+k} = L_{t} + k*T_{t}
+	\label{eq:AESadded}
 \end{equation}
 
 The values for the local level $L_{t}$ and the local trend $T_{t}$ are calculated by using a form of \emph{simple exponential smoothing}:
 
 \begin{eqnarray}
-  L_{t} &=& \alpha y_{t} + (1-\alpha)(L_{t-1} + T_{t-1} = \alpha y_{t} + (1-\alpha)F_{t-1}  \\
+  L_{t} &=& \alpha y_{t} + (1-\alpha)(L_{t-1} + T_{t-1}) = \alpha y_{t} + (1-\alpha)F_{t-1}  \\
   T_{t} &=& \beta (L_{t} - L_{t-1}) + (1-\beta)T_{t-1}
 \end{eqnarray}
 
-The smoothing constants $\alpha$ and $\beta$ are constants between 0 and 1.
+The smoothing constants $\alpha$ and $\beta$ are constants between 0 and 1. Once we have calculated the values of $L_{t}$ and $T_{t}$ the forecast with an additive trend, given by \ref{eq:AESadded} is \emph{linear}.
 
 There is of course also an error term present. It can be additive
 \begin{equation}
@@ -1921,7 +1922,54 @@ or multiplicative
 
 \newthought{Multiplicative trend}
 
+The disadvantage of a model with \emph{added trend} is that the forecast will be linear in time. When we have the impression (from visualizing the data, or from other information) that the relation between the time-series value $y_{t}$ and time $t$ is non-linear we can incorporate this into the forecasting model by making the term we add to the level \emph{dependant} upon the present value of the time-series. If the difference between the present value and the next value depends upon the present value we can write this locally as:
+\begin{equation}
+	y_{t+1} - y_{t} = y_{t}*p
+\end{equation}
 
+From this it follows that
+\begin{equation}
+	y_{t+1} = y_{t} + y_{t}*p = y_{t}(1 + p)
+\end{equation}
+
+and
+\begin{equation}
+	y_{t+2} = y_{t+1}(1 + p) = y_{t}(1+p)^{2}
+\end{equation}
+
+and in general
+\begin{equation}
+	y_{t+k} = y_{t}(1+p)^{k} = y_{t}(1 + kp + \frac{1}{2}k(k-1)p^{2} + \ldots + \frac{1}{i!}k(k-1)..(k-i+1)p^{i} + \ldots)
+\end{equation}
+
+which makes $y_{t+k}$ non-linear in the time step $k$ (Figure~\ref{fig:nonlinearp}).
+
+<<label=nonlinearp, fig=TRUE, include=FALSE, echo=FALSE>>=
+nonlin <- data.frame(k = seq(0, 5, by=0.1), pos = 0, neg = 0)
+ppos <- 0.8
+pneg <- -0.8
+nonlin$pos <- 5*(1+ppos)^(nonlin$k)
+nonlin$neg <- 100*(1+pneg)^(nonlin$k)
+p1 <- ggplot(data = nonlin, aes(x = k)) +
+  geom_line(aes(y = pos), color= "red") +
+  ggtitle("positive percentage growth") +
+  ylab("p = +0.8") +
+  ylim (low = 0, high = 100) +
+  JT.theme
+p2 <- ggplot(data = nonlin, aes(x = k)) +
+  geom_line(aes(y = neg), color = "red") +
+  ggtitle("negative percentage growth") +
+  ylab("p = -0.8") +
+  JT.theme
+grid.arrange(p1, p2, nrow = 1)
+@
+
+\begin{marginfigure}
+\includegraphics[width=0.85\textwidth]{PTSFR-nonlinearp}
+\caption{Non-linear aspect of multiplicative model}
+\label{fig:nonlinearp}
+\setfloatalignment{b}
+\end{marginfigure}
 
 \printindex
 
