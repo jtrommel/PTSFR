@@ -2057,7 +2057,7 @@ We can see that the forecasted values $F_{t+1}$ (black) gradually get closer and
 
 \newthought{Multiplicative and combined models}
 
-The \textbf{forecast}-package has the function \textit{ets} which can handle all kinds of additive, multiplicative and combined models. The choice of the model is communicated to the function by a three letter combination ''ets". The ''e" stands for the error (additive=A, multiplicative=M, no error=N), the ''t" stands for the trend (additive=A, multiplicative=M, no trend=N), the ''s" stands for the seasonal component (additive=A, multiplicative=M, no season=N). For example: the combination AMN stands for additive error, mulitplicative trend and no seasonality. If we model the Amtrak data with a multiplicative error, an additive trend, and an additive seasonal we get:
+The \textbf{forecast}-package has the function \textit{ets} which can handle all kinds of additive, multiplicative and combined models. The choice of the model is communicated to the function by a three letter combination ''ets". The ''e" stands for the error (additive=A, multiplicative=M), the ''t" stands for the trend (additive=A, multiplicative=M, no trend=N), the ''s" stands for the seasonal component (additive=A, multiplicative=M, no season=N). This gives us 18 possible combinations. For example: the combination AMN stands for additive error, mulitplicative trend and no seasonality. If we model the Amtrak data with a multiplicative error, an additive trend, and an additive seasonal we get:
 
 <<label=HWAmtrakMAA, fig=TRUE, include=FALSE, echo=FALSE>>=
 fixed.nValid <- 36
@@ -2091,6 +2091,54 @@ lines(valid.ts, col = "red", lty = 2)
 \label{fig:HWAmtrakMAA}
 \setfloatalignment{b}
 \end{figure}
+
+The details of the model are given by:
+<<>>=
+hwin
+@
+
+It gives the values for $\alpha=0.5543$ (local smoothing), $\beta=1e-04$ (global smoothing) and $\gamma=1e-04$ (global smooting). We can also find the starting conditions for the level $L_{0} = l = 1838.8778$, for the trend $T_{0} = b = 0.7871$ and the $12 = M$ seasonal components $S_{0}=[28.3319 , -11.2337, ..., -207.0408]$. In his book ''Forecasting with exponential smoothing" Rob Hyndman explains how the initial states are calculated\sidenote[][-7cm]{... a much better procedure is based on a decomposition. This is what was recommended in my 2008 Springer book and is implemented in the HoltWinters and ets functions in R.
+
+First fit a (2xM) moving average smoother to the first 2 or 3 years of data (HoltWinters uses 2 years, ets uses 3 years). Then subtract (for additive HW) or divide (for multiplicative HW) the smooth trend from the original data to get de-trended data. The initial seasonal values are then obtained from the averaged de-trended data. For example, the initial seasonal value for January is the average of the de-trended Januaries.Next subtract (for additive HW) or divide (for multiplicative HW) the seasonal values from the original data to get seasonally adjusted data.
+
+Fit a linear trend to the seasonally adjusted data to get the initial level $l_{0}$ (the intercept) and the initial slope $b_{0}$.} . We can find all subsequent states of the level, trend and seasonal component by \textit{hwin\$states}. We generate here only the initial states, and the final states:
+
+<<>>=
+hwin$states[1, ]
+hwin$states[nrow(hwin$states), ]
+@
+
+\section{Summary of exponential smoothing using the \textit{ets}-function}
+Two extra choices have been added to the \emph{trend}-component: apart from additive (A), multiplicative (M) and no trend (N), we can also choose for a \emph{damped additive} (Ad) or \emph{damped multiplicative} (Md) trend. This gives us 2 choices for the error component, 5 for the trend and 3 for the seasonal component: in total 30 possible combinations.
+
+However: some combinations are potentially numerically instable, and the \textit{ets}-function will not execute them unless we specifically force it to do so, by setting the parameter \textit{restrict = FALSE}. When doing this the results should be examined carefully!
+
+\section{Finding the best setting: automated model selection}
+
+With 30 possible settings of the parameters for \textit{ets} it is quite daunting to try to find the optimal choice.  We can leave it to \textit{ets} to find it for us, by setting the parameters to ''(Z, Z, Z)". You can also restrict the search by picking one or more parameters yourself. If you want to find the optimal modal with an additive error, you set the parameters to ''(A, Z, Z)". \textit{ets} uses the Akaike Information Criterion (AIC) as the metric for determining the ''best" model.
+
+The optimal model for the Amtrak data can be found (without the restricted elements) from:
+<<>>=
+hwinbest <- ets(train.ts, model = "ZZZ")
+hwinbest
+@
+
+\textit{ets} suggests that an (ANA)-model is the best with an $AIC=1615,673$. Our previous model was (MAA) with an $AIC=1617,460$. The optimal model is lightly better, but a AIC-difference of less than 2 is not considered to be relevant.
+
+Automating the selection process is handy, but it takes away the personal input. It is still better to work with different models and try them out on the validation set.
+
+<<>>=
+accuracy(hwin.pred, valid.ts)
+hwinbest.pred <- forecast(hwinbest, h = nValid, level=0)
+accuracy(hwinbest.pred, valid.ts)
+@
+
+We can see that the previous (MAA)-model has a better accuracy scores for the validation set than the optimal (ANA)-model.
+
+\section{Extensions of exponential smoothing}
+
+
+
 
 \printindex
 
