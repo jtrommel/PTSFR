@@ -1331,7 +1331,6 @@ text(x = 2005.5, y = 2190, labels="Future")
 arrows(x0 = 1991 + (nTrain + nValid + 1)/12, y0 = 2170, 
        x1 = 1991 + (nTrain + nValid + 36)/12, y1 = 2170, 
        code = 2, length = 0.1)
-
 @
 
 \begin{figure}
@@ -1875,7 +1874,7 @@ We can eliminate trend and seasonality by differencing. But these actions also h
 
 \newthought{Additive trend}
 
-The main idea is that we ''rebuild" the time series learning from previous data points. This is another way of looking at \emph{trend}\index{trend}. From a modelling perspective we can propose that the trend is given by (e.g.) a linear equation:
+The main idea is that we ''rebuild" the time series learning from previous data points. This is another way of looking at \emph{trend}\index{trend}\index{trend!additive}. From a modelling perspective we can propose that the trend is given by (e.g.) a linear equation:
 
 \begin{equation}
 	y_{t} = b_{0} + b_{1}t
@@ -1901,14 +1900,14 @@ It is also the beginning of a forecast further into the future. Assuming the tre
 	\label{eq:AESadded}
 \end{equation}
 
-The values for the local level $L_{t}$ and the local trend $T_{t}$ are calculated by using a form of \emph{simple exponential smoothing}:
+The values for the local level $L_{t}$ and the local trend $T_{t}$ are calculated by using a form of \emph{simple exponential smoothing}\emph{smoothing!simple exponential}:
 
 \begin{eqnarray}
   L_{t} &=& \alpha y_{t} + (1-\alpha)(L_{t-1} + T_{t-1}) = \alpha y_{t} + (1-\alpha)F_{t}  \\
   T_{t} &=& \beta (L_{t} - L_{t-1}) + (1-\beta)T_{t-1}
 \end{eqnarray}
 
-The smoothing constants $\alpha$ and $\beta$ are constants between 0 and 1. Once we have calculated the values of $L_{t}$ and $T_{t}$ the forecast with an additive trend, given by \ref{eq:AESadded} is \emph{linear}. It is clear that the level $L_{t}$ and the trend $T_{t}$ have the same units as the time-series value $y_{t}$.
+The smoothing constants\index{smoothing!constants} $\alpha$ and $\beta$ are constants between 0 and 1. Once we have calculated the values of $L_{t}$ and $T_{t}$ the forecast with an additive trend, given by \ref{eq:AESadded} is \emph{linear}. It is clear that the level $L_{t}$ and the trend $T_{t}$ have the same units as the time-series value $y_{t}$.
 
 There is of course also an error term present. It can be additive
 \begin{equation}
@@ -1920,7 +1919,7 @@ or multiplicative
 	y_{t+1} = (L_{t} + T_{t}).(1 + e_{t+1}) = F_{t+1}.(1 + e_{t+1})
 \end{equation}
 
-\newthought{Multiplicative trend}
+\newthought{Multiplicative trend}\index{trend!multiplicative}
 
 The disadvantage of a model with \emph{added trend} is that the forecast will be linear in time. When we have the impression (from visualizing the data, or from other information) that the relation between the time-series value $y_{t}$ and time $t$ is non-linear we can incorporate this into the forecasting model by making the term we add to the level \emph{dependent} upon the present value of the time-series. If the difference between the present value and the next value depends upon the present value we can write this locally as:
 \begin{equation}
@@ -1978,23 +1977,23 @@ Our forecast for $t+k$ will now be:
 
 From this equation it follows that the level $L_{t}$ has the same units as the time-series value $y_{t}$, but that the trend $T_{t}$ is \emph{dimensionless} and depends on the fraction $\frac{L_{t}}{L_{t-1}}$.
 
-The values for the local level $L_{t}$ and the local trend $T_{t}$ are again calculated using a form of \emph{simple exponential smoothing}. For the trend we must use the fraction $\frac{L_{t}}{L_{t-1}}$ :
+The values for the local level $L_{t}$ and the local trend $T_{t}$ are again calculated using a form of \emph{simple exponential smoothing}\index{simple exponential smoothing}\index{smoothing!simple exponential}. For the trend we must use the fraction $\frac{L_{t}}{L_{t-1}}$ :
 \begin{eqnarray}
   L_{t} &=& \alpha y_{t} + (1-\alpha)(L_{t-1} . T_{t-1}) = \alpha y_{t} + (1-\alpha)F_{t}  \\
   T_{t} &=& \beta (\frac{L_{t}}{L_{t-1}}) + (1-\beta)T_{t-1}
 \end{eqnarray}
 
-The error term can be additive
+The error component can be additive\index{error!additive}
 \begin{equation}
 	y_{t+1} = L_{t} . T_{t} + e_{t+1} = F_{t+1} + e_{t+1}
 \end{equation}
 
-or multiplicative
+or multiplicative\index{error!multiplicative}
 \begin{equation}
 	y_{t+1} = (L_{t} . T_{t}).(1 + e_{t+1}) = F_{t+1}.(1 + e_{t+1})
 \end{equation}
 
-\subsection{Time series with a trend and seasonality: Holt-Winters exponential smoothing}
+\subsection{Time series with a trend and seasonality: Holt-Winters exponential smoothing}\index{Holt-Winter}\index{double exponential smoothing}
 
 \newthought{Additive model}
 
@@ -2057,7 +2056,7 @@ We can see that the forecasted values $F_{t+1}$ (black) gradually get closer and
 
 \newthought{Multiplicative and combined models}
 
-The \textbf{forecast}-package has the function \textit{ets} which can handle all kinds of additive, multiplicative and combined models. The choice of the model is communicated to the function by a three letter combination ''ets". The ''e" stands for the error (additive=A, multiplicative=M), the ''t" stands for the trend (additive=A, multiplicative=M, no trend=N), the ''s" stands for the seasonal component (additive=A, multiplicative=M, no season=N). This gives us 18 possible combinations. For example: the combination AMN stands for additive error, mulitplicative trend and no seasonality. If we model the Amtrak data with a multiplicative error, an additive trend, and an additive seasonal we get:
+The \textbf{forecast}-package has the function \textit{ets}\index{ets-function} which can handle all kinds of additive, multiplicative and combined models. The choice of the model is communicated to the function by a three letter combination ''ets". The ''e" stands for the error (additive=A, multiplicative=M), the ''t" stands for the trend (additive=A, multiplicative=M, no trend=N), the ''s" stands for the seasonal component (additive=A, multiplicative=M, no season=N). This gives us 18 possible combinations. For example: the combination AMN stands for additive error, mulitplicative trend and no seasonality. If we model the Amtrak data with a multiplicative error, an additive trend, and an additive seasonal we get:
 
 <<label=HWAmtrakMAA, fig=TRUE, include=FALSE, echo=FALSE>>=
 fixed.nValid <- 36
@@ -2108,14 +2107,20 @@ hwin$states[1, ]
 hwin$states[nrow(hwin$states), ]
 @
 
-\section{Summary of exponential smoothing using the \textit{ets}-function}
+\newthought{addcon time-series}
+When you try to apply the Holt-Winter's method to the constructed time-series addcon and combicon, you get error-messages such as ''frequency too high". It comes from forcing the time-series into a time-series object using the \textit{ts}-function. The main stumbling block seems to be the definition of the ''frequency"-parameter. You can put in a decimal number, but in further calculations it seems that the functions only accept integer frequencies, and you get error messages.
+
+
+\section{Summary of exponential smoothing using the \textit{ets}-function}\index{ets-function!parameters}
 Two extra choices have been added to the \emph{trend}-component: apart from additive (A), multiplicative (M) and no trend (N), we can also choose for a \emph{damped additive} (Ad) or \emph{damped multiplicative} (Md) trend. This gives us 2 choices for the error component, 5 for the trend and 3 for the seasonal component: in total 30 possible combinations.
 
 However: some combinations are potentially numerically instable, and the \textit{ets}-function will not execute them unless we specifically force it to do so, by setting the parameter \textit{restrict = FALSE}. When doing this the results should be examined carefully!
 
-\section{Finding the best setting: automated model selection}
+\section{Finding the best setting: automated model selection}\index{ets: automated model selection}
 
 With 30 possible settings of the parameters for \textit{ets} it is quite daunting to try to find the optimal choice.  We can leave it to \textit{ets} to find it for us, by setting the parameters to ''(Z, Z, Z)". You can also restrict the search by picking one or more parameters yourself. If you want to find the optimal modal with an additive error, you set the parameters to ''(A, Z, Z)". \textit{ets} uses the Akaike Information Criterion (AIC) as the metric for determining the ''best" model.
+
+\newthought{Amtrak time series}
 
 The optimal model for the Amtrak data can be found (without the restricted elements) from:
 <<>>=
@@ -2137,8 +2142,161 @@ We can see that the previous (MAA)-model has a better accuracy scores for the va
 
 \section{Extensions of exponential smoothing}
 
+\subsection{Multiple seasonal cycles}
+
+The \textbf{forecast}-package has a function \textit{dshw} (double-seasonal Holt-Winter)\index{Holt-Winter!double-seasonal} that can handle this, \textbf{on condition that the larger period is an integer multiple of the smaller period}. This gives problems with the combination (year-week) and (year-day) because a year has 52.18 weeks, and 365.25 days. The alternatives are the \textit{tbats}-function (\textbf{forecast}-package) or the \textit{stlm}-function (\textbf{stats}-package). See the vignettes.
+
+\newthought{addcon time series}
+The \textit{ets}-function does not seem to work with the self constructed addcon time-series. However, the \textit{msts}-function (multiple seasonal time series)\index{time series!multiple seasonal} combined with the \textit{tabs}-function works well. Of course this implies that we have a good idea of the different seasonal periods. Supposing that we can determine those accurately (Fourier transform?) we will find $T_{1}=25.641$ and $T_{2}=111.111$ for the addcon time-series. Than we get the following forecast:
+
+<<label=tbatsaddcon, fig=TRUE, include=FALSE, echo=FALSE>>=
+addcon.msts <- msts(construct$addcon, seasonal.periods = c(25.641, 111.111))
+addcon.fit <- tbats(addcon.msts)
+plot(forecast(addcon.fit))
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-tbatsaddcon}
+\caption{Multiple seasonal time series tbats model of addcon time-series}
+\label{fig:tbatsaddcon}
+\setfloatalignment{b}
+\end{figure}
+
+\subsection{Adaptive smoothing constants}\index{smoothing constant!adaptive}
+A method where the smoothing constants $\alpha$, $\beta$ and $\gamma$ can change along the time axis.
+
+\chapter{Regression-based models: capturing trend and seasonality}\index{model!regression based}
+
+This model tries to find patterns (trend, seasonality) by using linear regression models (linear in the sense of the coefficients! It can be exponential, polynomial ...). These are \emph{global} methods\index{model!global} that we use based on the data in the training set. Then we use the validation set to see if the patterns are indeed global and can be extended into the future. Because that is ultimately what we will be doing when forecasting.
+
+\section{Model with trend}\index{trend!regression model}
+
+\subsection{Linear trend}
+We can fit a linear model to the data using the \textit{tslm}-function. Instead of working with time as the independent variable, we use the term ''trend"!!!
+
+\newthought{Amtrak time-series}
+
+<<label=Amtraklinreglin, fig=TRUE, include=FALSE, echo=FALSE>>=
+nValid <- 36
+nTrain <- length(ridership.ts) - nValid
+train.ts <- window(ridership.ts, 
+                   start = c(1991, 1),
+                   end = c(1991, nTrain))
+valid.ts <- window(ridership.ts, 
+                   start = c(1991, nTrain + 1), 
+                   end = c(1991, nTrain + nValid))
+train.lm <- tslm(train.ts ~ trend)
+train.lm.pred <- forecast(train.lm, h = nValid, level = 0)
+plot(train.lm.pred,
+     ylim = c(1300, 2600),
+     ylab = "Ridership",
+     xlab = "Time",
+     bty = "l",
+     xaxt = "n",
+     xlim = c(1991, 2006.25),
+     main = "",
+     lty = 2)
+axis(1, at = seq(1991, 2006, 1),
+     labels = format(seq(1991, 2006, 1)))
+lines(train.lm$fitted, lwd = 2, col = "green")
+lines(valid.ts, col = "red", lty = 2)
+abline(v = 1991 , col="blue")
+abline(v = 1991 + (nTrain)/12 , col="blue")
+abline(v = 1991 + (nTrain + nValid)/12, col="blue")
+text(x = 1996, y = 2210, labels="Training")
+arrows(x0 = 1991, y0 = 2170, 
+       x1 = 1991 + nTrain/12, y1 = 2170, 
+       code = 3, length = 0.1)
+text(x = 2002.6, y = 2210, labels="Validation")
+arrows(x0 = 1991 + (nTrain)/12, y0 = 2170, 
+       x1 = 1991 + (nTrain + nValid)/12, y1 = 2170, 
+       code = 3, length = 0.1)
+text(x = 2005.5, y = 2210, labels="Future")
+arrows(x0 = 1991 + (nTrain + nValid + 1)/12, y0 = 2170, 
+       x1 = 1991 + (nTrain + nValid + 36)/12, y1 = 2170, 
+       code = 2, length = 0.1)
+@
+
+\begin{marginfigure}
+\includegraphics[width=0.85\textwidth]{PTSFR-Amtraklinreglin}
+\caption{Linear regression of Amtrak Ridership}
+\label{fig:Amtraklinreglin}
+\setfloatalignment{b}
+\end{marginfigure}
+
+We can see in Figure~\ref{fig:Amtraklinreglin} that this does not seem to lead to good forecasting of the validation period. Furthermore, the statistical summary of the model is not very encouraging:
+
+<<>>=
+summary(train.lm)
+@
+\medskip
+The p-value for the slope (''trend") is very high. However, this should not surprise us because we have taken into account all the data, seasonality included, to determine this linear relation. At least we should remove the seasonal component from the data in order to get a better idea of the linear trend.
+
+We can do this by looking at the differenced tims-seris, where we take the lag equal to the seasonal period. For the Amtrak time-series this is lag12. This gives the following result. The p-value for the slope is now clearly very significant. The differencing will however influence the result. If
+\begin{equation}
+	y_{t}=b_{0} + b_{1}t +b_{2}t^{2}
+\end{equation}
+
+then
+\begin{equation}
+	lagy_{T} = y_{t}-y_{t-T}=b_{0}+b_{1}t+b_{2}t^{2} - [b_{0}+b_{1}(t-T)+b_{2}(t-T)^{2}] =(b_{1}T + b_{2}T^{2}) -2b_{2}Tt
+\end{equation}
+
+It is a linear equation in $t$ and from the intercept and the slope we can calcualte $b_{1}$ and $b_{2}$.
+
+<<label=Amtraklag12reglin, fig=TRUE, include=FALSE, echo=FALSE>>=
+Amtrak.lag12.ts <- diff(ridership.ts, lag = 12)
+nValid <- 36
+nTrain <- length(Amtrak.lag12.ts) - nValid
+train.lag12.ts <- window(Amtrak.lag12.ts, 
+                   start = c(1991, 1),
+                   end = c(1991, nTrain))
+valid.lag12.ts <- window(Amtrak.lag12.ts, 
+                   start = c(1991, nTrain + 1), 
+                   end = c(1991, nTrain + nValid))
+train.lag12.lm <- tslm(train.lag12.ts ~ trend)
+train.lag12.lm.pred <- forecast(train.lag12.lm, h = nValid, level = 0)
+plot(train.lag12.lm.pred,
+     ylim = c(-250, 250),
+     ylab = "Amtrak Ridership",
+     xlab = "Time",
+     bty = "l",
+     xaxt = "n",
+     xlim = c(1991, 2006.25),
+     main = "",
+     lty = 2)
+axis(1, at = seq(1991, 2006, 1),
+     labels = format(seq(1991, 2006, 1)))
+lines(train.lag12.lm$fitted, lwd = 2, col = "green")
+lines(valid.lag12.ts, col = "red", lty = 2)
+abline(v = 1991 , col="blue")
+abline(v = 1991 + (nTrain)/12 , col="blue")
+abline(v = 1991 + (nTrain + nValid)/12, col="blue")
+text(x = 1996, y = 225, labels="Training")
+arrows(x0 = 1991, y0 = 210, 
+       x1 = 1991 + nTrain/12, y1 = 210, 
+       code = 3, length = 0.1)
+text(x = 2001.6, y = 225, labels="Validation")
+arrows(x0 = 1991 + (nTrain)/12, y0 = 210, 
+       x1 = 1991 + (nTrain + nValid)/12, y1 = 210, 
+       code = 3, length = 0.1)
+text(x = 2005.5, y = 225, labels="Future")
+arrows(x0 = 1991 + (nTrain + nValid + 1)/12, y0 = 210, 
+       x1 = 1991 + (nTrain + nValid + 36)/12, y1 = 210, 
+       code = 2, length = 0.1)
+@
+
+\begin{marginfigure}[5cm]
+\includegraphics[width=0.85\textwidth]{PTSFR-Amtraklag12reglin}
+\caption{Linear regression of Amtrak Ridership lag12 differenced}
+\label{fig:Amtraklag12reglin}
+\setfloatalignment{b}
+\end{marginfigure}
 
 
+<<>>=
+summary(train.lm)
+@
 
 \printindex
 
