@@ -2169,10 +2169,10 @@ A method where the smoothing constants $\alpha$, $\beta$ and $\gamma$ can change
 
 This model tries to find patterns (trend, seasonality) by using linear regression models (linear in the sense of the coefficients! It can be exponential, polynomial ...). These are \emph{global} methods\index{model!global} that we use based on the data in the training set. Then we use the validation set to see if the patterns are indeed global and can be extended into the future. Because that is ultimately what we will be doing when forecasting.
 
-\section{Model with trend}\index{trend!regression model}
+\section{Model with trend}\index{trend!regression model}\index{regression model!trend}
 
 \subsection{Linear trend}
-We can fit a linear model to the data using the \textit{tslm}-function. Instead of working with time as the independent variable, we use the term ''trend"!!!
+We can fit a linear model to the data using the \textit{tslm}-function. Instead of working with the actual time as the independent variable, we use a variable ''trend" which starts at 0 and increments with 1.
 
 \newthought{Amtrak time-series}
 
@@ -2242,7 +2242,13 @@ then
 	lagy_{T} = y_{t}-y_{t-T}=b_{0}+b_{1}t+b_{2}t^{2} - [b_{0}+b_{1}(t-T)+b_{2}(t-T)^{2}] =(b_{1}T + b_{2}T^{2}) -2b_{2}Tt
 \end{equation}
 
-It is a linear equation in $t$ and from the intercept and the slope we can calcualte $b_{1}$ and $b_{2}$.
+It is a linear equation in $t$ and from the intercept and the slope we can calcualte $b_{1}$ and $b_{2}$:
+
+\begin{eqnarray}
+  b_{1} &=& \frac{intercept}{T} + \frac{slope}{2} \\
+  b_{2} &=& -\frac{slope}{2T}
+\label{eq:derivedcnst}
+\end{eqnarray}
 
 <<label=Amtraklag12reglin, fig=TRUE, include=FALSE, echo=FALSE>>=
 Amtrak.lag12.ts <- diff(ridership.ts, lag = 12)
@@ -2295,7 +2301,85 @@ arrows(x0 = 1991 + (nTrain + nValid + 1)/12, y0 = 210,
 
 
 <<>>=
+summary(train.lag12.lm)
+@
+\medskip
+When we calculate the values of $b_{1}$ and $b_{2}$ using equation~\ref{eq:derivedcnst}, we get $b_{1}=$\Sexpr{round(train.lag12.lm$coefficients[1]/12 + train.lag12.lm$coefficients[2]/2, 4)} and $b_{2}=$\Sexpr{round(- train.lag12.lm$coefficients[2]/24, 4)}, which is not far from the co\"{e}fficients for the linear term ($b_{1}=-4.4488$) and the quadratic term ($b_{2}=0.0381$) when we use Excel to find a quadratic trend through the Amtrak data. Also take into account that we are working here on data that lack the first period, due to the differencing.
+
+\subsection{Exponential trend}
+
+Take the log and do a linear regression.
+
+\subsection{Polynomial trend}
+
+\newthought{Amtrak time-series}
+
+<<label=Amtraklinregpoly, fig=TRUE, include=FALSE, echo=FALSE>>=
+nValid <- 36
+nTrain <- length(ridership.ts) - nValid
+train.ts <- window(ridership.ts, 
+                   start = c(1991, 1),
+                   end = c(1991, nTrain))
+valid.ts <- window(ridership.ts, 
+                   start = c(1991, nTrain + 1), 
+                   end = c(1991, nTrain + nValid))
+train.lm <- tslm(train.ts ~ trend + I(trend^2))
+train.lm.pred <- forecast(train.lm, h = nValid, level = 0)
+plot(train.lm.pred,
+     ylim = c(1300, 2600),
+     ylab = "Ridership",
+     xlab = "Time",
+     bty = "l",
+     xaxt = "n",
+     xlim = c(1991, 2006.25),
+     main = "",
+     lty = 2)
+axis(1, at = seq(1991, 2006, 1),
+     labels = format(seq(1991, 2006, 1)))
+lines(train.lm$fitted, lwd = 2, col = "green")
+lines(valid.ts, col = "red", lty = 2)
+abline(v = 1991 , col="blue")
+abline(v = 1991 + (nTrain)/12 , col="blue")
+abline(v = 1991 + (nTrain + nValid)/12, col="blue")
+text(x = 1996, y = 2210, labels="Training")
+arrows(x0 = 1991, y0 = 2170, 
+       x1 = 1991 + nTrain/12, y1 = 2170, 
+       code = 3, length = 0.1)
+text(x = 2002.6, y = 2210, labels="Validation")
+arrows(x0 = 1991 + (nTrain)/12, y0 = 2170, 
+       x1 = 1991 + (nTrain + nValid)/12, y1 = 2170, 
+       code = 3, length = 0.1)
+text(x = 2005.5, y = 2210, labels="Future")
+arrows(x0 = 1991 + (nTrain + nValid + 1)/12, y0 = 2170, 
+       x1 = 1991 + (nTrain + nValid + 36)/12, y1 = 2170, 
+       code = 2, length = 0.1)
+@
+
+\begin{marginfigure}
+\includegraphics[width=0.85\textwidth]{PTSFR-Amtraklinregpoly}
+\caption{Polynomial (quadratic) regression of Amtrak Ridership}
+\label{fig:Amtraklinregpoly}
+\setfloatalignment{b}
+\end{marginfigure}
+
+<<>>=
 summary(train.lm)
+@
+\medskip
+The p-value for all co\"{e}fficients is very low and a quadratic trend seems relevant even if we  are taking into account all the data, seasonality included. The co\"{e}fficients and the $R^{2}$-value that R give are not the same as those in Excel: the R results come from the training set, the Excel values from training + evaluation. Using the whole time-series in R we get the same results as in Excel:
+
+<<>>=
+summary(tslm(ridership.ts ~ trend + I(trend^2)))
+@
+
+\section{Model with seasonality}\index{seasonality!regression model}\index{regression model!seasonality}
+
+The most common way to capture \emph{seasonality}\index{seasonality} is by creating a new categorial variable with levels that equal the subdivisions of the season's period. In the Amtrak time-series the period $T=12$ where every month should be repetitive: Januari in one year should be the same as Januari in any other year, provided the trend is excluded. The same goes for Februari, and any other month. So we add a new variable ''Season" to the Amtrak time-series, with levels ''Jan", ''Feb" etc.
+
+<<>>=
+Amtrak.data$Season <- rep(c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"), length.out = nrow(Amtrak.data))
+Amtrak.seas.lm <- lm(Ridership[1:123] ~ Season[1:123], data = Amtrak.data)
+summary(Amtrak.seas.lm)
 @
 
 \printindex
