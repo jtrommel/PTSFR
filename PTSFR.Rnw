@@ -2375,12 +2375,102 @@ summary(tslm(ridership.ts ~ trend + I(trend^2)))
 \section{Model with seasonality}\index{seasonality!regression model}\index{regression model!seasonality}
 
 The most common way to capture \emph{seasonality}\index{seasonality} is by creating a new categorial variable with levels that equal the subdivisions of the season's period. In the Amtrak time-series the period $T=12$ where every month should be repetitive: Januari in one year should be the same as Januari in any other year, provided the trend is excluded. The same goes for Februari, and any other month. So we add a new variable ''Season" to the Amtrak time-series, with levels ''Jan", ''Feb" etc.
+The linear regression is a regression the categorial variable ''Season". The base value is the value for ''Jan" and then we get the shifts for every month. The time series already has this decomposition of the period into 12 parts. We can force the \textit{tslm}-function to consider these as categorical variables by stating in the formula for the linear regression that it should be done with the parameter ''season".
 
-<<>>=
-Amtrak.data$Season <- rep(c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"), length.out = nrow(Amtrak.data))
-Amtrak.seas.lm <- lm(Ridership[1:123] ~ Season[1:123], data = Amtrak.data)
-summary(Amtrak.seas.lm)
+<<label=Amtrakllinregseason, fig=TRUE, include=FALSE, echo=FALSE>>=
+train.seas.lm <- tslm(train.ts ~ season)
+summary(train.seas.lm)
+train.seas.lm.pred <- forecast(train.seas.lm, h = nValid, level = 0)
+plot(train.seas.lm.pred,
+     ylim = c(1300, 2600),
+     ylab = "Ridership",
+     xlab = "Time",
+     bty = "l",
+     xaxt = "n",
+     xlim = c(1991, 2006.25),
+     main = "",
+     lty = 2)
+axis(1, at = seq(1991, 2006, 1),
+     labels = format(seq(1991, 2006, 1)))
+lines(train.seas.lm$fitted, lwd = 2, col = "green")
+lines(valid.ts, col = "red", lty = 2)
+abline(v = 1991 , col="blue")
+abline(v = 1991 + (nTrain)/12 , col="blue")
+abline(v = 1991 + (nTrain + nValid)/12, col="blue")
+text(x = 1996, y = 2210, labels="Training")
+arrows(x0 = 1991, y0 = 2170, 
+       x1 = 1991 + nTrain/12, y1 = 2170, 
+       code = 3, length = 0.1)
+text(x = 2002.6, y = 2210, labels="Validation")
+arrows(x0 = 1991 + (nTrain)/12, y0 = 2170, 
+       x1 = 1991 + (nTrain + nValid)/12, y1 = 2170, 
+       code = 3, length = 0.1)
+text(x = 2005.5, y = 2210, labels="Future")
+arrows(x0 = 1991 + (nTrain + nValid + 1)/12, y0 = 2170, 
+       x1 = 1991 + (nTrain + nValid + 36)/12, y1 = 2170, 
+       code = 2, length = 0.1)
 @
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-Amtrakllinregseason}
+\caption{Linear regression of Amtrak Ridership on factor Season}
+\label{fig:Amtrakllinregseason}
+\setfloatalignment{b}
+\end{figure}
+
+\newpage
+\section{Model with trend and seasonality}\index{trend and seasonality!regression model}\index{regression model!trend and seasonality}
+
+We can combine the whole analysis of trend and seasonality in one step:
+
+<<label=Amtrakllinregtrendseason, fig=TRUE, include=FALSE, echo=FALSE>>=
+train.trend.seas.lm <- tslm(train.ts ~ trend + I(trend^2) + season)
+summary(train.trend.seas.lm)
+train.trend.seas.lm.pred <- forecast(train.trend.seas.lm, h = nValid, level = 0)
+plot(train.trend.seas.lm.pred,
+     ylim = c(1300, 2600),
+     ylab = "Ridership",
+     xlab = "Time",
+     bty = "l",
+     xaxt = "n",
+     xlim = c(1991, 2006.25),
+     main = "",
+     lty = 2)
+axis(1, at = seq(1991, 2006, 1),
+     labels = format(seq(1991, 2006, 1)))
+lines(train.trend.seas.lm$fitted, lwd = 2, col = "green")
+lines(valid.ts, col = "red", lty = 2)
+abline(v = 1991 , col="blue")
+abline(v = 1991 + (nTrain)/12 , col="blue")
+abline(v = 1991 + (nTrain + nValid)/12, col="blue")
+text(x = 1996, y = 2500, labels="Training")
+arrows(x0 = 1991, y0 = 2450, 
+       x1 = 1991 + nTrain/12, y1 = 2450, 
+       code = 3, length = 0.1)
+text(x = 2002.6, y = 2500, labels="Validation")
+arrows(x0 = 1991 + (nTrain)/12, y0 = 2450, 
+       x1 = 1991 + (nTrain + nValid)/12, y1 = 2450, 
+       code = 3, length = 0.1)
+text(x = 2005.5, y = 2500, labels="Future")
+arrows(x0 = 1991 + (nTrain + nValid + 1)/12, y0 = 2450, 
+       x1 = 1991 + (nTrain + nValid + 36)/12, y1 = 2450, 
+       code = 2, length = 0.1)
+@
+
+\begin{marginfigure}[-12cm]
+\includegraphics[width=0.85\textwidth]{PTSFR-Amtrakllinregtrendseason}
+\caption{Linear regression of Amtrak Ridership: trend = quadratic, season = factor}
+\label{fig:Amtrakllinregtrendseason}
+\setfloatalignment{b}
+\end{marginfigure}
+
+You can add other functions to the formula that discribes the linear regression to be executed. For example \textit{$tslm(train.ts \approx trend + I(trend^{2}) + sin(2*pi*trend/50) + sin(2*pi*trend/100))$} will add two continuous sine-functions to the regression.
+
+\section{Creating forecasts from the global model}
+First combine the test and the validation set, refit the chosen model and then start forecasting!
+
+\chapter{Regression base models: autocorrelation and external information}\index{model!regression based}\index{autocorrelation}
+
 
 \printindex
 
