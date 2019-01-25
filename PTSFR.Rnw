@@ -2471,6 +2471,51 @@ First combine the test and the validation set, refit the chosen model and then s
 
 \chapter{Regression base models: autocorrelation and external information}\index{model!regression based}\index{autocorrelation}
 
+Global models use linear regression to capture trend and seasonality into functions (trend, sinusoidal seasonal behaviour) or stepwise adjustments (constructing a typical season). One of the basic hypothesis in linear regression is that the data are independent. \emph{Autocorrelation} tries to find out if this assumption is correct. If not, the knowledge that some data points are correlated, can help us to improve our forecast model beyond trend and seasonality.
+
+The method can also be used to include information about \emph{special events}\index{special events} or to integrate \emph{external informaton}\index{external information}.
+
+\section{Autocorrelation}\index{autocorrelation}
+
+In many time-series values in neighbouring time slots tend to be correlated. This correlation between values belonging to the same time-series is called \emph{autocorrelation}.
+
+\subsection{Computing autocorrelation}\index{autocorrelation!computing}
+
+To compute autocorrelation we calculate the correaltion between a time-series and a lagged version of the series. The lag1-version will of course have one data point less (the first), a lagk-version will have k data points less. For the Amtrak time-series the first 24 data points for the original series, the lag1- and the lag2-version are:
+
+<<echo = FALSE>>=
+Amtrak.lag <- data.frame(original = Amtrak.data$Ridership[1:24], lag1 = 0, lag2 = 0 )
+Amtrak.lag$lag1[1] <- NA
+Amtrak.lag$lag1[2:24] <- Amtrak.lag$original[1:23]
+Amtrak.lag$lag2[1:2] <- NA
+Amtrak.lag$lag2[3:24] <- Amtrak.lag$original[1:22]
+@
+
+<<>>=
+Amtrak.lag
+@
+\medskip
+We can calculate the correlation between the original time-series and lag1, ad between the original time-series and lag2 with the R-function \textit{cor} (use parameter ''use = 'complete.obs'").
+
+<<>>=
+cor(Amtrak.lag$original, Amtrak.lag$lag1, use = "complete.obs")
+cor(Amtrak.lag$original, Amtrak.lag$lag2, use = "complete.obs")
+@
+
+The \textbf{forecast}-package has the \textit{Acf}-function (Autocorrelation function). For the first 24 datapoints we get:
+
+<<label=AmtrakAcf, fig=TRUE, include=FALSE, echo=FALSE>>=
+ridership.24.ts <- window(ridership.ts, start = c(1991, 1), end = c(1991, 24))
+Acf(ridership.24.ts, lag.max = 12, main = "Amtrak correlation coefficient for different lags")
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-AmtrakAcf}
+\caption{Autocorrelation for Amtrak Ridership}
+\label{fig:AmtrakAcf}
+\setfloatalignment{b}
+\end{figure}
+
 
 \printindex
 
