@@ -2481,7 +2481,7 @@ In many time-series values in neighbouring time slots tend to be correlated. Thi
 
 \subsection{Computing autocorrelation}\index{autocorrelation!computing}
 
-To compute autocorrelation we calculate the correaltion between a time-series and a lagged version of the series. The lag1-version will of course have one data point less (the first), a lagk-version will have k data points less. For the Amtrak time-series the first 24 data points for the original series, the lag1- and the lag2-version are:
+To compute autocorrelation we calculate the correlation between a time-series and a lagged version of the series. The lag1-version will of course have one data point less (the first), a lagk-version will have k data points less. For the Amtrak time-series the first 24 data points for the original series, the lag1- and the lag2-version are:
 
 <<echo = FALSE>>=
 Amtrak.lag <- data.frame(original = Amtrak.data$Ridership[1:24], lag1 = 0, lag2 = 0 )
@@ -2490,7 +2490,7 @@ Amtrak.lag$lag1[2:24] <- Amtrak.lag$original[1:23]
 Amtrak.lag$lag2[1:2] <- NA
 Amtrak.lag$lag2[3:24] <- Amtrak.lag$original[1:22]
 @
-
+\medskip
 <<>>=
 Amtrak.lag
 @
@@ -2502,20 +2502,53 @@ cor(Amtrak.lag$original, Amtrak.lag$lag1, use = "complete.obs")
 cor(Amtrak.lag$original, Amtrak.lag$lag2, use = "complete.obs")
 @
 
-The \textbf{forecast}-package has the \textit{Acf}-function (Autocorrelation function). For the first 24 datapoints we get:
+The \textbf{forecast}-package has the \textit{Acf}-function (Autocorrelation function). For the first 24 datapoints in the data-series we get for lag1 and lag2
 
-<<label=AmtrakAcf, fig=TRUE, include=FALSE, echo=FALSE>>=
+<<>>=
 ridership.24.ts <- window(ridership.ts, start = c(1991, 1), end = c(1991, 24))
-Acf(ridership.24.ts, lag.max = 12, main = "Amtrak correlation coefficient for different lags")
+Acf(ridership.24.ts, lag.max = 2, plot=FALSE)
 @
+\medskip
 
-\begin{figure}
-\includegraphics[width=0.85\textwidth]{PTSFR-AmtrakAcf}
-\caption{Autocorrelation for Amtrak Ridership}
-\label{fig:AmtrakAcf}
-\setfloatalignment{b}
-\end{figure}
+Close, but no sigar. There is something odd in the output of the \textit{Afc}-function. 
 
+Let's start from Pearson's correlation formula:
+\begin{equation}
+	cor(x,y) = \frac{\sum\limits_{j=1}^{j=n} \left( x_{j}-\bar{x} \right) \left( y_{j}-\bar{y} \right)}{\sqrt{\sum\limits_{j=1}^{i=n} \left( x_{j}-\bar{x} \right)^{2}} \sqrt{\sum\limits_{j=1}^{i=n} \left( y_{j}-\bar{y} \right)^{2}}}
+\end{equation}
+
+When we start from the original time-series $O$ with N elements, and we want to study the correlation with $lag=k$ we define:
+\begin{eqnarray}
+  x_{j} &=& [O_{1}, O_{2}, \ldots , O_{N-k}] \quad  n=(N-k) \\
+  y_{j} &=& [O_{k+1}, O_{k+2}, \ldots, O_{N}] \quad n=(N-k)
+\end{eqnarray}
+
+the autocorrelation with $lag=k$ becomes:
+\begin{equation}
+	cor(x,y) = \frac{\sum\limits_{j=1}^{j=n} \left( x_{j}-\bar{x} \right) \left( y_{j}-\bar{y} \right)}{\sqrt{\sum\limits_{j=1}^{i=n} \left( x_{j}-\bar{x} \right)^{2}} \sqrt{\sum\limits_{j=1}^{i=n} \left( y_{j}-\bar{y} \right)^{2}}}
+\end{equation}
+
+The definition of the output of the \textit{Acf}-function is given in\sidenote{''Forecasting: Principles and Practice", Rob J Hyndman and George Athanasopoulos, Monash University, Australia; paragraph 2.8}:
+
+\begin{equation}
+	r_{k} = \frac{\sum\limits_{t=k+1}^{T}(y_{t}-\bar{y})(y_{t-k} - \bar{y})}{\sum\limits_{t=1}^{T}(y_{t}-\bar{y})^{2}} 
+\end{equation}
+
+Rearranging the nominator factors, call the original time-series $O$, the index $i$ and the number of values in the original time series $N$,
+\begin{equation}
+	r_{k} = \frac{\sum\limits_{i=k+1}^{N}(O_{i-k} - \bar{O})(O_{i}-\bar{O})}{\sum\limits_{i=1}^{N}(O_{i}-\bar{O})^{2}}  = \frac{\sum\limits_{i=k+1}^{N}(O_{i-k} - \bar{O})(O_{i}-\bar{O})}{\sum\limits_{i=1}^{N}(0_{i}-\bar{O})^{2}} = \frac{\sum\limits_{j=1}^{N}(x_{j} - \bar{O})(y_{j}-\bar{O})}{\sum\limits_{i=1}^{N}(0_{i}-\bar{O})^{2}}
+\end{equation}
+
+The $\bar{O}$ in the first and second factor of the nominator are the same and refer to the original series. I think that in the first factor $\bar{O}= mean(x_{j})$ for $j=1 \ldots (N-k)$, while in the second factor $\bar{O}= mean(y_{j})$ for $j=1 \ldots (N-k)$. With this interpretation the formula for $r_{k}$ becomes:
+\begin{equation}
+	r_{k} = \frac{\sum\limits_{j=1}^{N}(x_{j} - \bar{x})(y_{j}-\bar{y})}{\sum\limits_{i=1}^{N}(0_{i}-\bar{O})^{2}}
+\end{equation}
+
+in the denominator I expect to find the product of the standard deviatons of the ''reduced" time-series $x$ and $y$. However it refers to the original time-series with $N$ elements.
+
+
+
+\sidenote{Discussion of ''High-dimensional autocovariance matrices and optimal linear prediction”, Rob J. Hyndman, Electronic Journal of Statistics Vol. 9 (2015) 792–796 ISSN: 1935-7524 DOI: 10.1214/14-EJS953}
 
 \printindex
 
