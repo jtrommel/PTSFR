@@ -2517,10 +2517,10 @@ Let's start from Pearson's correlation formula:
 	cor(x,y) = \frac{\sum\limits_{j=1}^{j=n} \left( x_{j}-\bar{x} \right) \left( y_{j}-\bar{y} \right)}{\sqrt{\sum\limits_{j=1}^{i=n} \left( x_{j}-\bar{x} \right)^{2}} \sqrt{\sum\limits_{j=1}^{i=n} \left( y_{j}-\bar{y} \right)^{2}}}
 \end{equation}
 
-When we start from the original time-series $O$ with N elements, and we want to study the correlation with $lag=k$ we define:
+When we start from the original time-series $Orig$ with N elements, and we want to study the correlation with $lag=k$ we define:
 \begin{eqnarray}
-  x_{j} &=& [O_{1}, O_{2}, \ldots , O_{N-k}] \quad  n=(N-k) \\
-  y_{j} &=& [O_{k+1}, O_{k+2}, \ldots, O_{N}] \quad n=(N-k)
+  x_{j} &=& [Orig_{1}, Orig_{2}, \ldots , Orig_{N-k}] \quad  n=(N-k) \\
+  y_{j} &=& [Orig_{k+1}, Orig_{k+2}, \ldots, Orig_{N}] \quad n=(N-k)
 \end{eqnarray}
 
 the autocorrelation with $lag=k$ becomes:
@@ -2534,19 +2534,72 @@ The definition of the output of the \textit{Acf}-function is given in\sidenote{'
 	r_{k} = \frac{\sum\limits_{t=k+1}^{T}(y_{t}-\bar{y})(y_{t-k} - \bar{y})}{\sum\limits_{t=1}^{T}(y_{t}-\bar{y})^{2}} 
 \end{equation}
 
-Rearranging the nominator factors, call the original time-series $O$, the index $i$ and the number of values in the original time series $N$,
+Rearranging the nominator factors, call the original time-series $Orig$, the index $i$ and the number of values in the original time series $N$,
 \begin{equation}
-	r_{k} = \frac{\sum\limits_{i=k+1}^{N}(O_{i-k} - \bar{O})(O_{i}-\bar{O})}{\sum\limits_{i=1}^{N}(O_{i}-\bar{O})^{2}}  = \frac{\sum\limits_{i=k+1}^{N}(O_{i-k} - \bar{O})(O_{i}-\bar{O})}{\sum\limits_{i=1}^{N}(0_{i}-\bar{O})^{2}} = \frac{\sum\limits_{j=1}^{N}(x_{j} - \bar{O})(y_{j}-\bar{O})}{\sum\limits_{i=1}^{N}(0_{i}-\bar{O})^{2}}
+	r_{k} = \frac{\sum\limits_{i=k+1}^{N}(Orig_{i-k} - \overline{Orig})(Orig_{i}-\overline{Orig})}{\sum\limits_{i=1}^{N}(Orig_{i}-\overline{Orig})^{2}}  = \frac{\sum\limits_{i=k+1}^{N}(Orig_{i-k} - \overline{Orig})(Orig_{i}-\overline{Orig})}{\sum\limits_{i=1}^{N}(0_{i}-\overline{Orig})^{2}} = \frac{\sum\limits_{j=1}^{N}(x_{j} - \overline{Orig})(y_{j}-\overline{Orig})}{\sum\limits_{i=1}^{N}(Orig_{i}-\overline{Orig})^{2}}
 \end{equation}
 
-The $\bar{O}$ in the first and second factor of the nominator are the same and refer to the original series. I think that in the first factor $\bar{O}= mean(x_{j})$ for $j=1 \ldots (N-k)$, while in the second factor $\bar{O}= mean(y_{j})$ for $j=1 \ldots (N-k)$. With this interpretation the formula for $r_{k}$ becomes:
-\begin{equation}
-	r_{k} = \frac{\sum\limits_{j=1}^{N}(x_{j} - \bar{x})(y_{j}-\bar{y})}{\sum\limits_{i=1}^{N}(0_{i}-\bar{O})^{2}}
-\end{equation}
+The $\overline{Orig}$ in the first and second factor of the nominator are the same and refer to average value of the original series. In Pearson's formula these should be $mean(x_{j})$ for $j=1 \ldots (N-k)$ in the first factor, and $mean(y_{j})$ for $j=1 \ldots (N-k)$ in the second factor. The difference with $\overline{Orig}$ will probably not be important on condition that the reduced series $x$ and $y$ are not too different from the original series $Orig$. In other words: when $n \approx N$ or when $\frac{k}{N}$ is small. 
 
-in the denominator I expect to find the product of the standard deviatons of the ''reduced" time-series $x$ and $y$. However it refers to the original time-series with $N$ elements.
+In the denominator we expect to find the product of the square roots of $(n-1)$\sidenote{There is a suggestion in Hyndman that for time series we should use $n$ times the variance} times the variance of the reduced series $x$ and $y$. In the formula for $r_{k}$ we have the product of the square roots of $(N-1)$ times the variance of the original time series. Because both factors are the same, the square root disappears. Again, this is probably OK when $n \approx N$ or when $\frac{k}{N}$ is small.
 
+The question is: why these approximations? Why not use the ''proper" Pearson correlation formula. Let's calculate both Pearson, rHyndman and Acf for the Arima data for lags 0 ... 5:
 
+<<echo=FALSE>>=
+JT.Hyndman <- function(k, Orig) {
+  # Orig.df is original time-series
+  N <- length(Orig)
+  barOrig <- mean(Orig)
+  if (k == 0) {
+    x <- Orig
+    } else {
+      x <- Orig[-((N - k + 1):N)] 
+    }
+  barx <- mean(x)
+  if (k == 0) {
+    y <- Orig
+  } else {
+    y <- Orig[-(1:k)] 
+  }
+  bary <- mean(y)
+  Pearson <- cor(x, y)
+  rHyndman <- sum((x - barOrig)*(y - barOrig))/(sum((Orig - barOrig)^2))
+  Autoc <- Acf(Orig, lag.max = k, plot=FALSE)[k]
+  return(c(k, Pearson, rHyndman, Autoc$acf[1,1,1]))
+}
+@
+
+<<>>=
+res <- data.frame(k = 0, Pearson = 0, rHyndman = 0, Acf = 0)
+for (k in (0:5)) {
+  res[(k+1),] <- JT.Hyndman(k, Amtrak.data$Ridership[1:24])
+}
+res
+@
+
+We can see that the formula given in \sidenote{''Forecasting: Principles and Practice", Rob J Hyndman and George Athanasopoulos, Monash University, Australia; paragraph 2.8} does indeed give the output from the \textit{Acf}-function. Both these results are not very different from the ''correct" Pearson correlation.
+
+But or a short and/or special time-series the situation is different. Take a simple linear time-series with 10 values ($seq(1,10)$):
+
+<<>>=
+res <- data.frame(k = 0, Pearson = 0, rHyndman = 0, Acf = 0)
+for (k in (0:5)) {
+  res[(k+1),] <- JT.Hyndman(k, seq(1,10))
+}
+res
+@
+
+The same simple linear time-series but now with 100 values ($seq(1,100)$):
+
+<<>>=
+res <- data.frame(k = 0, Pearson = 0, rHyndman = 0, Acf = 0)
+for (k in (0:5)) {
+  res[(k+1),] <- JT.Hyndman(k, seq(1,100))
+}
+res
+@
+
+The Hyndman formula seems to ''punish" lag-series with fewer terms.
 
 \sidenote{Discussion of ''High-dimensional autocovariance matrices and optimal linear prediction”, Rob J. Hyndman, Electronic Journal of Statistics Vol. 9 (2015) 792–796 ISSN: 1935-7524 DOI: 10.1214/14-EJS953}
 
