@@ -2579,7 +2579,7 @@ res
 
 We can see that the formula given in \sidenote{''Forecasting: Principles and Practice", Rob J Hyndman and George Athanasopoulos, Monash University, Australia; paragraph 2.8} does indeed give the output from the \textit{Acf}-function. Both these results are not very different from the ''correct" Pearson correlation.
 
-But or a short and/or special time-series the situation is different. Take a simple linear time-series with 10 values ($seq(1,10)$):
+But for short and/or special time-series the situation is different. Take a simple linear time-series with 10 values ($seq(1,10)$) (Figure~\ref{fig:CorandAcf10}):
 
 <<>>=
 res <- data.frame(k = 0, Pearson = 0, rHyndman = 0, Acf = 0)
@@ -2589,17 +2589,104 @@ for (k in (0:5)) {
 res
 @
 
-The same simple linear time-series but now with 100 values ($seq(1,100)$):
-
-<<>>=
-res <- data.frame(k = 0, Pearson = 0, rHyndman = 0, Acf = 0)
-for (k in (0:5)) {
-  res[(k+1),] <- JT.Hyndman(k, seq(1,100))
-}
-res
+<<label=CorandAcf10, fig=TRUE, include=FALSE, echo=FALSE>>=
+ggplot(data = res) +
+  geom_segment(aes(x = k - 0.05, y = 0, xend = k - 0.05, yend = Pearson), size = 2, color="red") +
+  geom_text(x = 2.4, y = 0.95, color = "red", label = "Pearson") +
+  geom_segment(aes(x = k + 0.05, y = 0, xend = k + 0.051, yend = rHyndman), size = 2, color="blue") +
+  geom_text(x = 2.5, y = 0.45, color = "blue", label = "rHyndman") +
+  geom_hline(yintercept = 0, size = 1, color = "black") +
+  scale_y_continuous(limits= c(-0.5, 1)) +
+  JT.theme
 @
 
-The Hyndman formula seems to ''punish" lag-series with fewer terms.
+\begin{marginfigure}[-5cm]
+\includegraphics[width=0.85\textwidth]{PTSFR-CorandAcf10}
+\caption{Autoregression of [1, 2, ..., 10] with cor and Afc}
+\label{fig:CorandAcf10}
+\setfloatalignment{b}
+\end{marginfigure}
+
+The same simple linear time-series but now with 100 values ($seq(1,100)$) (Figure~\ref{fig:CorandAcf100})
+
+<<label=CorandAcf100, fig=TRUE, include=FALSE, echo=FALSE>>=
+res <- data.frame(k = 0, Pearson = 0, rHyndman = 0, Acf = 0)
+for (k in (0:25)) {
+  res[(k+1),] <- JT.Hyndman(k, seq(1,100))
+}
+ggplot(data = res) +
+  geom_segment(aes(x = k - 0.1, y = 0, xend = k - 0.1, yend = Pearson), size = 1, color="red") +
+  geom_text(x = 17.4, y = 0.95, color = "red", label = "Pearson") +
+  geom_segment(aes(x = k + 0.1, y = 0, xend = k + 0.1, yend = rHyndman), size = 1, color="blue") +
+  geom_text(x = 17.7, y = 0.55, color = "blue", label = "rHyndman") +
+  geom_hline(yintercept = 0, size = 1, color = "black") +
+  scale_y_continuous(limits= c(-0.5, 1)) +
+  JT.theme
+@
+
+\begin{marginfigure}[-10cm]
+\includegraphics[width=0.85\textwidth]{PTSFR-CorandAcf100}
+\caption{Autoregression of [1, 2, ..., 100] with cor and Afc}
+\label{fig:CorandAcf100}
+\setfloatalignment{b}
+\end{marginfigure}
+
+The Hyndman formula seems to ''punish" lag-series with fewer terms. But why?
+
+Let's try a sine-function with period $T=20$ (Figure~\ref{fig:CorandAfcsin}):
+
+<<label=CorandAcfsin, fig=TRUE, include=FALSE, echo=FALSE>>=
+res <- data.frame(k = 0, Pearson = 0, rHyndman = 0, Acf = 0)
+t <- seq(0, 100)
+T <- 20
+Orig <- sin(2*pi*t/T)
+for (k in (0:25)) {
+  res[(k+1),] <- JT.Hyndman(k, Orig)
+}
+ggplot(data = res) +
+  geom_segment(aes(x = k - 0.1, y = 0, xend = k - 0.1, yend = Pearson), size = 1, color="red") +
+  geom_text(x = 17.4, y = 0.95, color = "red", label = "Pearson") +
+  geom_segment(aes(x = k + 0.1, y = 0, xend = k + 0.1, yend = rHyndman), size = 1, color="blue") +
+  geom_text(x = 17.7, y = 0.55, color = "blue", label = "rHyndman") +
+  geom_hline(yintercept = 0, size = 1, color = "black") +
+  scale_y_continuous(limits= c(-1, 1)) +
+  JT.theme
+@
+
+\begin{marginfigure}[-5cm]
+\includegraphics[width=0.85\textwidth]{PTSFR-CorandAcfsin}
+\caption{Autoregression of sine}
+\label{fig:CorandAcfsin}
+\setfloatalignment{b}
+\end{marginfigure}
+
+Now a sine-function with period $T=20$ and additive $N(0,\sigma=0.1)$ random error (Figure~\ref{fig:CorandAfcsinanderr}):
+
+<<label=CorandAcfsinanderr, fig=TRUE, include=FALSE, echo=FALSE>>=
+res <- data.frame(k = 0, Pearson = 0, rHyndman = 0, Acf = 0)
+t <- seq(0, 100)
+T <- 20
+set.seed(2019)
+Orig <- sin(2*pi*t/T) + rnorm(101, 0, 0.1)
+for (k in (0:25)) {
+  res[(k+1),] <- JT.Hyndman(k, Orig)
+}
+ggplot(data = res) +
+  geom_segment(aes(x = k - 0.1, y = 0, xend = k - 0.1, yend = Pearson), size = 1, color="red") +
+  geom_text(x = 17.4, y = 0.95, color = "red", label = "Pearson") +
+  geom_segment(aes(x = k + 0.1, y = 0, xend = k + 0.1, yend = rHyndman), size = 1, color="blue") +
+  geom_text(x = 17.7, y = 0.55, color = "blue", label = "rHyndman") +
+  geom_hline(yintercept = 0, size = 1, color = "black") +
+  scale_y_continuous(limits= c(-1, 1)) +
+  JT.theme
+@
+
+\begin{marginfigure}[0cm]
+\includegraphics[width=0.85\textwidth]{PTSFR-CorandAcfsinanderr}
+\caption{Autoregression of sine + error}
+\label{fig:CorandAcfsinanderr}
+\setfloatalignment{b}
+\end{marginfigure}
 
 \sidenote{Discussion of ''High-dimensional autocovariance matrices and optimal linear prediction”, Rob J. Hyndman, Electronic Journal of Statistics Vol. 9 (2015) 792–796 ISSN: 1935-7524 DOI: 10.1214/14-EJS953}
 
