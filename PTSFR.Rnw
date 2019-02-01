@@ -2595,12 +2595,14 @@ ggplot(data = res) +
   geom_text(x = 2.4, y = 0.95, color = "red", label = "Pearson") +
   geom_segment(aes(x = k + 0.05, y = 0, xend = k + 0.051, yend = rHyndman), size = 2, color="blue") +
   geom_text(x = 2.5, y = 0.45, color = "blue", label = "rHyndman") +
+  ggtitle("Autoregression of [1, 2, ..., 10] with cor and Afc") +
+  xlab("k") +
   geom_hline(yintercept = 0, size = 1, color = "black") +
   scale_y_continuous(limits= c(-0.5, 1)) +
   JT.theme
 @
 
-\begin{marginfigure}[-5cm]
+\begin{marginfigure}[-7cm]
 \includegraphics[width=0.85\textwidth]{PTSFR-CorandAcf10}
 \caption{Autoregression of [1, 2, ..., 10] with cor and Afc}
 \label{fig:CorandAcf10}
@@ -2619,12 +2621,14 @@ ggplot(data = res) +
   geom_text(x = 17.4, y = 0.95, color = "red", label = "Pearson") +
   geom_segment(aes(x = k + 0.1, y = 0, xend = k + 0.1, yend = rHyndman), size = 1, color="blue") +
   geom_text(x = 17.7, y = 0.55, color = "blue", label = "rHyndman") +
+  ggtitle("Autoregression of [1, 2, ..., 10O] with cor and Afc") +
+  xlab("k") +
   geom_hline(yintercept = 0, size = 1, color = "black") +
   scale_y_continuous(limits= c(-0.5, 1)) +
   JT.theme
 @
 
-\begin{marginfigure}[-10cm]
+\begin{marginfigure}[0cm]
 \includegraphics[width=0.85\textwidth]{PTSFR-CorandAcf100}
 \caption{Autoregression of [1, 2, ..., 100] with cor and Afc}
 \label{fig:CorandAcf100}
@@ -2633,7 +2637,7 @@ ggplot(data = res) +
 
 The Hyndman formula seems to ''punish" lag-series with fewer terms. But why?
 
-Let's try a sine-function with period $T=20$ (Figure~\ref{fig:CorandAfcsin}):
+Let's try a sine-function with period $T=20$ and the same sine-function with an additive $N(0,\sigma=0.5)$ random error (Figure~\ref{fig:CorandAcfsin}):
 
 <<label=CorandAcfsin, fig=TRUE, include=FALSE, echo=FALSE>>=
 res <- data.frame(k = 0, Pearson = 0, rHyndman = 0, Acf = 0)
@@ -2643,52 +2647,100 @@ Orig <- sin(2*pi*t/T)
 for (k in (0:25)) {
   res[(k+1),] <- JT.Hyndman(k, Orig)
 }
-ggplot(data = res) +
+p1 <- ggplot(data = res) +
   geom_segment(aes(x = k - 0.1, y = 0, xend = k - 0.1, yend = Pearson), size = 1, color="red") +
   geom_text(x = 17.4, y = 0.95, color = "red", label = "Pearson") +
   geom_segment(aes(x = k + 0.1, y = 0, xend = k + 0.1, yend = rHyndman), size = 1, color="blue") +
   geom_text(x = 17.7, y = 0.55, color = "blue", label = "rHyndman") +
+  ggtitle("Autoregression of sine (T=20)\nwith cor and Afc") +
+  xlab("k") +
   geom_hline(yintercept = 0, size = 1, color = "black") +
   scale_y_continuous(limits= c(-1, 1)) +
   JT.theme
-@
-
-\begin{marginfigure}[-5cm]
-\includegraphics[width=0.85\textwidth]{PTSFR-CorandAcfsin}
-\caption{Autoregression of sine}
-\label{fig:CorandAcfsin}
-\setfloatalignment{b}
-\end{marginfigure}
-
-Now a sine-function with period $T=20$ and additive $N(0,\sigma=0.1)$ random error (Figure~\ref{fig:CorandAfcsinanderr}):
-
-<<label=CorandAcfsinanderr, fig=TRUE, include=FALSE, echo=FALSE>>=
 res <- data.frame(k = 0, Pearson = 0, rHyndman = 0, Acf = 0)
 t <- seq(0, 100)
 T <- 20
 set.seed(2019)
-Orig <- sin(2*pi*t/T) + rnorm(101, 0, 0.1)
+Orig <- sin(2*pi*t/T) + rnorm(101, 0, 0.5)
 for (k in (0:25)) {
   res[(k+1),] <- JT.Hyndman(k, Orig)
 }
-ggplot(data = res) +
+p2 <- ggplot(data = res) +
   geom_segment(aes(x = k - 0.1, y = 0, xend = k - 0.1, yend = Pearson), size = 1, color="red") +
   geom_text(x = 17.4, y = 0.95, color = "red", label = "Pearson") +
   geom_segment(aes(x = k + 0.1, y = 0, xend = k + 0.1, yend = rHyndman), size = 1, color="blue") +
   geom_text(x = 17.7, y = 0.55, color = "blue", label = "rHyndman") +
+  ggtitle("Autoregression of sine (T=20) + error (N(O,0.5))\n with cor and Afc") +
+  xlab("k") +
   geom_hline(yintercept = 0, size = 1, color = "black") +
   scale_y_continuous(limits= c(-1, 1)) +
   JT.theme
+grid.arrange(p1, p2, nrow = 1)
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-CorandAcfsin}
+\caption{Autoregression of sine and sine+error}
+\label{fig:CorandAcfsin}
+\setfloatalignment{b}
+\end{figure}
+
+From these figures you can indeed deduce information about the global behaviour of the original time-series:
+\begin{itemize}
+	\item a very strong positive lag1 autocorrelation indicates a global linear trend
+	\item a very stron negative lag1 autocorrelation indicates a swing pattern
+	\item a very strong lagk autocorrelation indicatse a seasonal behaviour, certainly when lagk/2 shows a negative Acf while lagk shows a positive Acf
+\end{itemize}
+
+However: you can deduce this as easily from visualising the time-series and the Pearson-correlation for different lags.
+
+\subsection{What is the use of autocorrelation?}\index{autocorrelation!what's the use?}
+
+The strong point of autocorrelation calculation is in checking if a time series is truly \emph{stationary}\index{stationary}\index{time series!stationary}. A \emph{stationary} time-series has no trend and no seasonality. If the gobal model we have constructed for our time-series is a good representation of its behaviour, we expect that the \emph{residuals}\index{residuals} show \textbf{no} autocorrelation. If we do find autocorrelation this suggests that our model is not good enough yet. We could try to improve the global model, or we could ''tweek" it locally using the knowledge that there is autocorrelation within the residuals.
+
+\newthought{Example: Amtrak data}
+
+<<label=Amtrakllinregtrendseasonresid, fig=TRUE, include=FALSE, echo=FALSE>>=
+plot(train.trend.seas.lm$residuals,
+     ylim = c(-250, 250),
+     ylab = "Residuals Ridership",
+     xlab = "Time",
+     bty = "l",
+     xaxt = "n",
+     xlim = c(1991, 2002),
+     main = "",
+     lty = 1,
+     col = "red")
+axis(1, at = seq(1991, 2002, 1),
+     labels = format(seq(1991, 2002, 1)))
 @
 
 \begin{marginfigure}[0cm]
-\includegraphics[width=0.85\textwidth]{PTSFR-CorandAcfsinanderr}
-\caption{Autoregression of sine + error}
-\label{fig:CorandAcfsinanderr}
+\includegraphics[width=0.85\textwidth]{PTSFR-Amtrakllinregtrendseasonresid}
+\caption{Residuals of linear regression of Amtrak Ridership: trend = quadratic, season = factor}
+\label{fig:Amtrakllinregtrendseasonresid}
 \setfloatalignment{b}
 \end{marginfigure}
 
-\sidenote{Discussion of ''High-dimensional autocovariance matrices and optimal linear prediction”, Rob J. Hyndman, Electronic Journal of Statistics Vol. 9 (2015) 792–796 ISSN: 1935-7524 DOI: 10.1214/14-EJS953}
+<<>>=
+res <- data.frame(k = 0, Pearson = 0, rHyndman = 0, Acf = 0)
+for (k in (0:12)) {
+  res[(k+1),] <- JT.Hyndman(k, train.trend.seas.lm$residuals)
+}
+res
+@
+
+Pearson and Acf do not differ very much, so we use Acf because it gives us a plot:
+<<label=AmtrakAcfresid, fig=TRUE, include=FALSE, echo=FALSE>>=
+Acf(train.trend.seas.lm$residuals, lag.max = 12)
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-AmtrakAcfresid}
+\caption{Acf of residuals of linear regression of Amtrak Ridership: trend = quadratic, season = factor}
+\label{fig:AmtrakAcfresid}
+\setfloatalignment{b}
+\end{figure}
 
 \printindex
 
