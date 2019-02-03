@@ -2742,6 +2742,140 @@ Acf(train.trend.seas.lm$residuals, lag.max = 12)
 \setfloatalignment{b}
 \end{figure}
 
+We can see that the residuals are \textbf{not} stationary: there is substantial autocorrelation at lags 1, 2 and 3. This tells us that usefull information is still available within the residuals which can help to improve out forecast.
+
+\section{Improving Forecasts by capturing autocorrelation: AR and ARIMA models}\index{autocorrelation}\index{AR-models}\index{ARIMA-models}
+
+\subsection{Autoregressive models (AR)}\index{autoregressive model}\index(autoregressive model!AR)
+
+\emph{Autoregressive models} are linear regression models, but the predicting variabel is not the tiem $t$ but past values of the series. An autoregressive model for a time-series $x$ of order\index{autoregressive model!order} 2 is a linear correlation with predictors the lag1 and the lag2 values of the time series:
+\begin{equation}
+	x_{t} = b_{0} + b_{1}x_{t-1} + b_{2}x_{t-2}
+\end{equation}
+
+We can use the traditional \textit{lm}-function but this is not optimal because one of the basic hypotheses of linear regression is the \emph{independence} of the observations. This is clearly not true in the case where we suspect autocorrelation! The \textit{ARIMA}-function takes the interdependency into account.
+
+There are two approaches to take advantage of autocorrelation: AR as a second-layer model and full scale ARIMA models.
+
+\subsection{AR as a second-layer model}\index{autocorrelation model!second-layer model}
+
+The steps to take are:
+\begin{enumerate}
+	\item generate a k-step ahead forecast of the time-series using a forecasting method. This gives us k values $F_{t+1} \ldots F_{t+k}$
+	\item generate a k-step ahead forecast of the time-series of the forecast error (the residuals) using an AR or other model. This gives us k values $e_{t+1} \ldots e_{t+k}$
+	\item improve the initial forecasts by adding the forecasted error. This gives us k values $F_{t+1} + e_{t+1} \ldots F_{t+k} + e_{t+k}$
+\end{enumerate}
+
+We made a global forecasting model for the Amtrak Ridership data based on a quadratic trend and a seasonal component. We also saw (Figure~\ref{fig:AmtrakAcfresid}) that the residuals are not stationary and hide some information that we can use to improve our forecast. Let's go through the steps:
+
+\begin{enumerate}
+	\item we have a global model (quadratic + seasonal) based on the training set
+	\item calculate the forecasts for the validation period
+	\item calculate the errors for the validation period
+	\item construct a linear model regressing the error in the validation period using an AR model
+	\item generate a k-step ahead forecast of the time-series of the forecast error (the residuals) using an AR or other model. This gives us k values $e_{t+1} \ldots e_{t+k}$
+	\item improve the initial forecasts by adding the forecasted error. This gives us k values $F_{t+1} + e_{t+1} \ldots F_{t+k} + e_{t+k}$
+\end{enumerate}
+
+<<>>=
+train.JT <- data.frame(t = seq(1, nTrain), number = Amtrak.data$Ridership[1:nTrain], season = rep(c("Jan","Feb","Mar","Apr", "May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"), length.out = nTrain))
+train.JT$season <- factor(train.JT$season, levels = c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))
+#
+# Construct linear model (quadratic + season) based on the training set
+#
+linmod <- lm(number ~ t + I(t^2) + season, data = train.JT)
+#
+train.JT$pred <- predict(linmod)
+@
+
+<<label=Amatrakmodel, fig=TRUE, include=FALSE, echo=FALSE>>=
+ggplot(data = train.JT, aes(x = t)) +
+  geom_line(aes(y = number), lty = 2) +
+  geom_line(aes(y = pred), col="red") +
+  labs(title = "Training set: values and prediction") +
+  JT.theme
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-Amatrakmodel}
+\caption{Linear regression of Amtrak Ridership: trend = quadratic, season = factor}
+\label{fig:Amatrakmodel}
+\setfloatalignment{b}
+\end{figure}
+
+The residuals of this model are the differences between the actual and the predicted values. Let's look at the plot of the residuals, the plot of the Pearson and Acf correlations for different lags and the relation between lag1 and lag0 of the residuals (Figure~\ref{fig:Amtrakresid})
+
+<<label=Amtrakresid, fig=TRUE, include=FALSE, echo=FALSE>>=
+train.JT$resid <- linmod$residuals
+res <- data.frame(k = 0, Pearson = 0, rHyndman = 0, Acf = 0)
+for (k in (0:12)) {
+  res[(k+1),] <- JT.Hyndman(k, train.JT$resid)
+}
+p1 <- ggplot(data = train.JT, aes(x = t)) +
+  geom_line(aes(y = resid), col = "red") +
+  labs(title = "Training set\nresiduals") +
+  JT.theme
+p2 <- ggplot(data = res, aes(x = k)) +
+  geom_segment(aes(x = seq(0,12) - 0.1, y = 0, xend = seq(0, 12) - 0.1, yend = Pearson), col = "red") +
+  geom_segment(aes(x = seq(0,12) + 0.1, y = 0, xend = seq(0, 12) + 0.1, yend = Acf), col = "blue") +
+  labs(title = "Training set\nautocorrelation", x = "lag", y = "Pearson (red) / Acf (blue)") +
+  scale_x_continuous(breaks = c(seq(0, 12, by = 2))) +
+  JT.theme
+linmod.res.ARx <- linmod$residuals[-nTrain]
+linmod.res.ARy <- linmod$residuals[-1]
+p3 <- ggplot() +
+  geom_point(aes(x = linmod.res.ARx, y = linmod.res.ARy), col="red") +
+  labs(title = "Training set\nresiduals lag0 function of lag1", x = "lag1", y = "lag0") +
+  JT.theme
+grid.arrange(p1, p2, p3, nrow = 1)
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-Amtrakresid}
+\caption{Analysis of the residuals of linear regression of Amtrak Ridership}
+\label{fig:Amtrakresid}
+\setfloatalignment{b}
+\end{figure}
+
+A first order (AR1) linear regression seems appropriate:
+<<>>=
+linmod.res.AR <- lm(linmod.res.ARy ~ linmod.res.ARx)
+@
+
+We can now use this extra information on our prediction in the training period. For each moment t we know the actual value (train.JT\$number), the predicted value (train.JT\$pred) and the residual (train.JT\$resid). Using the residual model and the residual at time $t$ we can calculate the ''improvement" (except for the first value because there is no preceding error):
+
+<<>>=
+train.JT$improv[1] <- 0
+for (i in (2:nTrain)) {
+  train.JT$improv[i] <- predict(linmod.res.AR, linmod.res.ARx = c(train.JT$resid[i-1]))[i]
+}
+train.JT$pred.improv <- train.JT$pred + train.JT$improv
+@
+
+<<label=Amatrakimprov, fig=TRUE, include=FALSE, echo=FALSE>>=
+ggplot(data = train.JT, aes(x = t)) +
+  geom_line(aes(y = number), lty = 2) +
+  geom_line(aes(y = pred), col="red") +
+  geom_line(aes(y = pred.improv), col = "blue") +
+  labs(title = "Training set: improved prediction with AR1") +
+  JT.theme
+@
+
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{PTSFR-Amatrakimprov}
+\caption{Improved linear regression of Amtrak Ridership with AR1}
+\label{fig:Amatrakimprov}
+\setfloatalignment{b}
+\end{figure}
+
+\newpage
+When we calculate the accuracy metrics for the predictions before and after the AR1-improvement, we can see that it is much better:
+
+<<>>=
+accuracy(train.JT$pred, train.JT$number)
+accuracy(train.JT$pred.improv, train.JT$number)
+@
+
 \printindex
 
 \newpage
