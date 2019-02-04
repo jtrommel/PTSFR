@@ -947,7 +947,7 @@ Calculating MAPE is impossible when $y_{i}=0$. When you cannot reasonably exclud
 Values of MASE lower higher than 1 indicate a poorer performance than the naive forecast.
 
 \subsection{Forecast accuracy vs. profitability}\index{forecast!accuracy}\index{forecast!cost}
-Some metrics (e.g. MAPE and RMSE) inflate the effect of large errors. But the effects, or costs, of the error should also come into consideration. Sometimes the cost of a forecast error is big for positive errors, but not for negative ones. Sometimes the cost is proportional to the error, but the relation can be non-linear: it can be that the cost is the same once a certain error treshold is crossed.A measure of profitability could be very usefull when choosing the forecast method.
+Some metrics (e.g. MAPE and RMSE) inflate the effect of large errors. But the effects, or costs, of the error should also come into consideration. Sometimes the cost of a forecast error is big for positive errors, but not for negative ones. Sometimes the cost is proportional to the error, but the relation can be non-linear: it can be that the cost is the same once a certain error treshold is crossed.A measure of profitability could be very useful when choosing the forecast method.
 
 \section{Evaluating forecast uncertainty}
 
@@ -1138,7 +1138,7 @@ mean(abs(percent.error.snaive))
 
 \section{Model-based vs. Data-driven methods}\index{forecast!model-based methods}\index{forecast!data-driven methods}\index{model-based methods}\index{data-driven methods}\index{methods!model-based}\index{methods!data-driven}
 
-\emph{Model-based methods} use statistical, mathematical or other scientific models to approximate a time series. E.g. based on some prior knowledge of the subject we can reasonably assume a linear relation in time: $y(t)=b_{0} + b_{1}t$. The training data and a statistical method (linear regression) are used to determine the parameters $b_{0}$ and $b_{1}$ and the confidence interval on the predicted (forecasted) values. Model-based methods are very usefull when the data set is small: we do not need a lot of data points when we ''know" the type of relationship. These methods are better when the pattern is \emph{global}.
+\emph{Model-based methods} use statistical, mathematical or other scientific models to approximate a time series. E.g. based on some prior knowledge of the subject we can reasonably assume a linear relation in time: $y(t)=b_{0} + b_{1}t$. The training data and a statistical method (linear regression) are used to determine the parameters $b_{0}$ and $b_{1}$ and the confidence interval on the predicted (forecasted) values. Model-based methods are very useful when the data set is small: we do not need a lot of data points when we ''know" the type of relationship. These methods are better when the pattern is \emph{global}.
 
 \emph{Data-driven methods} find a pattern within the data, without presuming the know the relation of the data with time. A typical example is finding the trend using a \emph{moving average} or other smoothing technique. Naive methods are also only based on the data. Data-driven methods usually need more data points, but they have the advantage of being less user dependent and they adapt automatically when additional data become available. These methods adapt themselves to \emph{local} patterns.
 
@@ -1744,7 +1744,7 @@ it follows that:
 
 This formulation shows that \emph{simple exponential smoothing} is a \emph{learning} process: it takes the former forecast and adjusts it based on the difference with the actual value. If the former forecast was too high ($e_{t} <0$) then it will adjust the next forecast downward. If the former was too low ($e_{t}>0$) it will adjust upwards. The ''learning" is exemplified by the \emph{smoothing constant}\index{smoothing constant}\index{smoothing!constant} $\alpha$.
 
-From the formula we can see that \emph{simple exponential smoothing} will only generate one prediction for the future. The second prediction cannot be calculated as we do not know the acutal value of $y_{t+1}$. Usually this means that for forecasts from $F_{t+2}$ and higher we keep the forecast constant and equal to $F_{t+1}$. This is a small improvement on a naive forecast, but not much. As such, \emph{simple exponential smoothing} is not a usefull forecasting method for time series that have trend and/or seasonality.
+From the formula we can see that \emph{simple exponential smoothing} will only generate one prediction for the future. The second prediction cannot be calculated as we do not know the acutal value of $y_{t+1}$. Usually this means that for forecasts from $F_{t+2}$ and higher we keep the forecast constant and equal to $F_{t+1}$. This is a small improvement on a naive forecast, but not much. As such, \emph{simple exponential smoothing} is not a useful forecasting method for time series that have trend and/or seasonality.
 
 \subsection{Choosing the smoothing constant $\alpha$}\index{smoothing constant}\index{simple exponential smoothing!smoothing constant}
 
@@ -2742,7 +2742,7 @@ Acf(train.trend.seas.lm$residuals, lag.max = 12)
 \setfloatalignment{b}
 \end{figure}
 
-We can see that the residuals are \textbf{not} stationary: there is substantial autocorrelation at lags 1, 2 and 3. This tells us that usefull information is still available within the residuals which can help to improve out forecast.
+We can see that the residuals are \textbf{not} stationary: there is substantial autocorrelation at lags 1, 2 and 3. This tells us that useful information is still available within the residuals which can help to improve out forecast.
 
 \section{Improving Forecasts by capturing autocorrelation: AR and ARIMA models}\index{autocorrelation}\index{AR-models}\index{ARIMA-models}
 
@@ -2839,24 +2839,25 @@ grid.arrange(p1, p2, p3, nrow = 1)
 
 A first order (AR1) linear regression seems appropriate:
 <<>>=
-linmod.res.AR <- lm(linmod.res.ARy ~ linmod.res.ARx)
+linmod.res.AR1 <- lm(linmod.res.ARy ~ linmod.res.ARx)
 @
 
 We can now use this extra information on our prediction in the training period. For each moment t we know the actual value (train.JT\$number), the predicted value (train.JT\$pred) and the residual (train.JT\$resid). Using the residual model and the residual at time $t$ we can calculate the ''improvement" (except for the first value because there is no preceding error):
 
 <<>>=
-train.JT$improv[1] <- 0
-for (i in (2:nTrain)) {
-  train.JT$improv[i] <- predict(linmod.res.AR, linmod.res.ARx = c(train.JT$resid[i-1]))[i]
-}
-train.JT$pred.improv <- train.JT$pred + train.JT$improv
+train.JT$improv.AR1[1] <- 0
+train.JT$improv.AR1[2:nTrain] <- predict(linmod.res.AR1)
+train.JT$pred.AR1 <- train.JT$pred + train.JT$improv.AR1
 @
 
 <<label=Amatrakimprov, fig=TRUE, include=FALSE, echo=FALSE>>=
 ggplot(data = train.JT, aes(x = t)) +
   geom_line(aes(y = number), lty = 2) +
   geom_line(aes(y = pred), col="red") +
-  geom_line(aes(y = pred.improv), col = "blue") +
+  geom_line(aes(y = pred.AR1), col = "blue") +
+  geom_text(x = 25, y = 2110, label = "values", hjust = 0) +
+  geom_text(x = 25, y = 2060, color = "red", label = "quadratic + season", hjust = 0) +
+  geom_text(x = 25, y = 2010, color = "blue", label = "quadratic + season + AR1", hjust = 0) +
   labs(title = "Training set: improved prediction with AR1") +
   JT.theme
 @
@@ -2869,12 +2870,209 @@ ggplot(data = train.JT, aes(x = t)) +
 \end{figure}
 
 \newpage
-When we calculate the accuracy metrics for the predictions before and after the AR1-improvement, we can see that it is much better:
-
+When we calculate the accuracy metrics for the predictions before and after the AR1-improvement, we can see that it is better:
+\medskip
 <<>>=
 accuracy(train.JT$pred, train.JT$number)
-accuracy(train.JT$pred.improv, train.JT$number)
+accuracy(train.JT$pred.AR1, train.JT$number)
 @
+\medskip
+The autocorrelation for the residus of the model improved with AR1 are given in Figure~\ref{fig:AmatrakAcfAR1} and we can conclude that the AR1-improvement is sufficient.
+<<label=AmatrakAcfAR1, fig=TRUE, include=FALSE, echo=FALSE>>=
+train.JT$resid.AR1 <- train.JT$number - train.JT$pred.AR1
+Acf(train.JT$resid.AR1, lag.max = 12)
+@
+
+\begin{marginfigure}
+\includegraphics[width=1\textwidth]{PTSFR-AmatrakAcfAR1}
+\caption{Autorregression of Amtrak Ridership with AR1}
+\label{fig:AmatrakAcfAR1}
+\setfloatalignment{b}
+\end{marginfigure}
+
+\newthought{Validation}
+
+<<echo=FALSE>>=
+valid.JT <- data.frame(t = seq((nTrain + 1), (nTrain + nValid)), number = Amtrak.data$Ridership[(nTrain + 1):(nTrain + nValid)], season = rep(c("Apr", "May","Jun","Jul","Aug","Sep","Oct","Nov","Dec", "Jan","Feb","Mar"), length.out = nValid))
+valid.JT$season <- factor(valid.JT$season, levels = c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))
+#
+# Use the linear model (quadratic + season) based on the training set (linmod) to make predictions in the validaton period
+#
+newdata <- data.frame(t = valid.JT$t, season = valid.JT$season)
+valid.JT$pred <- predict(linmod, newdata)
+#
+# Calculate the residuals in the validation period
+#
+valid.JT$resid <- valid.JT$number - valid.JT$pred
+#
+# Construct the data set of lag1 residuals: the first comes from the training set, the rest from the validation set
+#
+linmod.res.ARx <- train.JT$resid[nTrain]
+linmod.res.ARx[2:nValid] <- valid.JT$resid[1:(nValid - 1)]
+#
+# Predict the errors bases on an AR1 model
+#
+valid.JT$improv.AR1 <- predict(linmod.res.AR1, as.data.frame(linmod.res.ARx))
+#
+# Calculate the improved predictions for the validation period
+#
+valid.JT$pred.AR1 <- valid.JT$pred + valid.JT$improv.AR1
+@
+
+<<label=Amatrakmodelvalid, fig=TRUE, include=FALSE, echo=FALSE>>=
+ggplot(data = valid.JT, aes(x = t)) +
+  geom_line(aes(y = number), lty = 2) +
+  geom_line(aes(y = pred), col="red") +
+  geom_line(aes(y = pred.AR1), col="blue") +
+  geom_text(x = 129, y = 1700, label = "values", hjust = 0) +
+  geom_text(x = 140, y = 2310, color = "red", label = "quadratic + season", hjust = 0) +
+  geom_text(x = 134, y = 1740, color = "blue", label = "quadratic + season + AR1", hjust = 0) +
+  labs(title = "Validation set: values, prediction, improved AR1") +
+  JT.theme
+@
+
+\begin{marginfigure}
+\includegraphics[width=1\textwidth]{PTSFR-Amatrakmodelvalid}
+\caption{Amtrak Ridership: values and global model in validation period}
+\label{fig:Amatrakmodelvalid}
+\setfloatalignment{b}
+\end{marginfigure}
+
+\newthought{Forecasting}
+
+\textbf{But} it is clear that this method is problematic for forecasting, because it depends on knowing the residuals, and that depends on knowing the actual value of $y_{t}$. For future values these are clearly not available. 
+
+For the first step into the future we can calculate two forecasts: $Fg_{t+1}$ based on the global model (quadratic + season) and $Fi_{t+1}$, the improved forecast based on the AR1-model and using the (known) last error of the validation set $e_{t}=y_{t}-Fg_{t}$.
+
+For the second step into the future, we cannot use $e_{t+1}$ because we do not have the value $y_{t+1}$. As a substitue we could use $e'_{t+1}=Fi_{t+1} - Fg_{t+1}$. But this is not very satisfactory because it builds a forecast on a forecast.
+
+<<echo=FALSE>>=
+nFuture <- nValid
+future.JT <- data.frame(t = seq((nTrain +nValid + 1), (nTrain + nValid + nFuture)), season = rep(c("Apr", "May","Jun","Jul","Aug","Sep","Oct","Nov","Dec", "Jan","Feb","Mar"), length.out = nFuture))
+future.JT$season <- factor(future.JT$season, levels = c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))
+#
+# Use the linear model (quadratic + season) based on the training set (linmod) to make predictions in the future period
+#
+newdata <- data.frame(t = future.JT$t, season = future.JT$season)
+future.JT$pred <- predict(linmod, newdata)
+#
+# First step into the future
+#
+# Use the last known exact residue
+#
+linmod.res.ARx <- valid.JT$resid[nValid]
+#
+# Predict the error bases on an AR1 model
+#
+future.JT$improv.AR1 <- 0
+future.JT$improv.AR1[1] <- predict(linmod.res.AR1, as.data.frame(linmod.res.ARx))
+#
+# Calculate the improved predictions for the validation period
+#
+future.JT$pred.AR1 <- 0
+future.JT$pred.AR1[1] <- future.JT$pred[1] + future.JT$improv.AR1[1]
+#
+# Step 2 and following
+#
+for (i in c(2:nFuture)){
+  linmod.res.ARx <- future.JT$pred.AR[i-1] - future.JT$pred[i-1]
+  future.JT$improv.AR1[i] <- predict(linmod.res.AR1, as.data.frame(linmod.res.ARx))
+  future.JT$pred.AR1[i] <- future.JT$pred[i] + future.JT$improv.AR1[i]
+}
+@
+
+<<label=Amatrakmodelfuture, fig=TRUE, include=FALSE, echo=FALSE>>=
+ggplot(data = future.JT, aes(x = t)) +
+  geom_line(aes(y = pred), col="#FF000075", size = 2) +
+  geom_line(aes(y = pred.AR1), col="blue") +
+  geom_text(x = 164, y = 2600, color = "red", label = "quadratic + season", hjust = 0) +
+  geom_text(x = 160, y = 2200, color = "blue", label = "quadratic + season + AR1", hjust = 0) +
+  labs(title = "Future: values, prediction, improved AR1") +
+  JT.theme
+@
+
+\begin{marginfigure}
+\includegraphics[width=1\textwidth]{PTSFR-Amatrakmodelfuture}
+\caption{Amtrak Ridership: values and global model in the future}
+\label{fig:Amatrakmodelfuture}
+\setfloatalignment{b}
+\end{marginfigure}
+
+As we can see the improvement does not last: after a few steps it falls in step with the global forecast. \textbf{Conclusion}: AR-models are great for the training and validation set, but not very useful for forecasting! Sigh.
+
+\newpage
+\section{ARIMA models}\index{ARIMA}\index{model!ARIMA}\index{autocorrelation model!ARIMA}\index{AutoRegressive Integrated Moving Average}
+
+\emph{ARIMA}-model stands for \emph{AutoRegressive Integrated Moving Average}-model. It directly models the autocorrelation of the series values as well as the autocorrelation of the forecast errors:
+
+\begin{equation}
+	y_{t} = \left[ b_{0} + b_{1}y_{t-1} + \ldots b_{p}y_{t-p} \right ] + \left [ \theta_{1}e_{t-1} + \ldots \theta_{q}e_{t-q} \right]
+\end{equation}
+
+To get an ARIMA-model the user has to set a number of parameters:
+\begin{enumerate}
+	\item $p$: order of the AR-model based on the $y$-values (AR-part)
+	\item $q$: order of the AR-model for the forecast errors (MA-part)
+	\item $d$: the number of lag1 differencing that should be applied to the original time-series for removing the trend (I-part)
+\end{enumerate}
+
+Because the calculations are based on former values of $y_{t}$ (both in the AR-part and, indirectly in the MA-part) this is not a very useful forecating method! However: we can throw in our lot with ARIMA and let the function do an ''autoARIMA"\index{ARIMA!autoARIMA}\index{autoARIMA}. This allows you to make forecasts. But how it works is not clear! 
+
+<<label=Amatrakautoarima, fig=TRUE, include=FALSE, echo=FALSE>>=
+Amtrak.auto <- auto.arima(Amtrak.data$Ridership)
+futurVal <- forecast(Amtrak.auto, h = 36, level=0.95)
+ggplot() +
+  geom_line(aes(x = Amtrak.data$t, y = Amtrak.data$Ridership)) +
+  geom_line(aes(x = Amtrak.data$t, y = Amtrak.auto$fitted), col = "red") +
+  geom_line(aes(x = seq(160, 195), y = futurVal$mean), col = "blue") +
+  labs(title = "Results and forecast with autoarima") +
+  JT.theme
+@
+
+\begin{marginfigure}
+\includegraphics[width=1\textwidth]{PTSFR-Amatrakautoarima}
+\caption{Amtrak Ridership: forecast with autoarima}
+\label{fig:Amatrakautoarima}
+\setfloatalignment{b}
+\end{marginfigure}
+
+\section{Evaluating predictability}\index{predictability}
+
+\emph{Predictability} means: does the past of a time-series predict the future in an non trivial way? We can measure \emph{predictability} by comparing it to a special case: the \emph{random walk}\index{random walk}. This is a special case of an AR(1) model where $b_{1}=1$:
+
+\begin{equation}
+	y_{t} = \beta_{0} + y_{t-1} + \epsilon_{t}
+\end{equation}
+
+The difference $y_{t} - y_{t-1}=\beta_{0} + \epsilon$ is random, due to the nature of the $\epsilon$-term. The best forecast available is the \emph{naive forecast}\index{naive forecast}, because there simply is no other information we can use.
+
+\newthought{Example: Amtrak Ridership}
+\medskip
+To test wether a time-series is a random walk, we apply the \textit{Acf}-function to the differenced (lag1) time series (Figure~\ref{fig:Amatrakcheckpred}). If the difference is random, it should not have important autocorrelations for lags 1, 2, 3. We can see that the autocorrelations are above the treshhold for lag1 an lag2. The time-series is not a random walk! (High autocorrelations for larger lags indicate the seasonal component).
+
+<<label=Amatrakcheckpred, fig=TRUE, include=FALSE, echo=FALSE>>=
+Acf(diff(Amtrak.data$Ridership, lag = 1))
+@
+
+\begin{marginfigure}
+\includegraphics[width=1\textwidth]{PTSFR-Amatrakcheckpred}
+\caption{Amtrak Ridership: checking equivalence to random walk}
+\label{fig:Amatrakcheckpred}
+\setfloatalignment{b}
+\end{marginfigure}
+
+We can also fit an AR(1) model and test the hypotesis that the slope co\"{e}fficient is equal to 1 ($H_{0}: \beta_{1} =1$ vs. $H_{1}: \beta_{1} \neq 1$).
+
+We have the AR(1)-model for the training period. Its summary is:
+<<>>=
+summary(linmod.res.AR1)
+@
+\medskip
+The value of the slope is \Sexpr{round(linmod.res.AR1$coefficients[2],3)}, with a standard error equal to \Sexpr{round(sqrt(diag(vcov(linmod.res.AR1)))[2], 3)}. The difference with a $\beta_{1}=1$ is \Sexpr{round(1 - linmod.res.AR1$coefficients[2], 3)} which is \Sexpr{round((1 - linmod.res.AR1$coefficients[2])/(sqrt(diag(vcov(linmod.res.AR1)))[2]),3)} times the standard error. This makes it highly improbable that the original series acts like a random walk.
+
+
+
+
 
 \printindex
 
