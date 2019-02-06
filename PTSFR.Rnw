@@ -3070,6 +3070,22 @@ summary(linmod.res.AR1)
 \medskip
 The value of the slope is \Sexpr{round(linmod.res.AR1$coefficients[2],3)}, with a standard error equal to \Sexpr{round(sqrt(diag(vcov(linmod.res.AR1)))[2], 3)}. The difference with a $\beta_{1}=1$ is \Sexpr{round(1 - linmod.res.AR1$coefficients[2], 3)} which is \Sexpr{round((1 - linmod.res.AR1$coefficients[2])/(sqrt(diag(vcov(linmod.res.AR1)))[2]),3)} times the standard error. This makes it highly improbable that the original series acts like a random walk.
 
+\section{Including external information}\index{external information}
+
+\subsection{Outliers}\index{outliers}
+
+Extreme values that can influence regression models considerably. In this case it is sensible to make one regression model \emph{with} the outliers present and another \emph{without} the outliers. If
+\begin{itemize}
+	\item there is no marked difference between these models: keep them
+	\item if there is a marked difference: remove them and fill in the blanks with \emph{imputed}\index{imputing values} values if necessary. Some methods such as regression can work when there are ''NA"'s present (e.g. regression), some cannot (e.g. smoothing). You can also create a new dummy variable ''Outlier" that gets the values $0$ or $1$ and can be incorporated as a factor into the regression.
+\end{itemize}
+
+\subsection{Special events}\index{special events}
+
+\emph{Special events} such as holidays (which may not follow the Gregorian calendar!), sport events, concerts ... can have a great influence on the time-series values at particular point in time. We can use the same techniques as with \emph{outliers}.
+
+\subsection{Interventions}\index{interventions}
+
 
 
 
